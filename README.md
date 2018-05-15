@@ -1,2 +1,4 @@
 # FITS_dashboard
-Using plotly.dash look into table data based on the FITS file format in astronomy
+An interface for loading FITS Table data and displaying them in a Plotly.Dash dashboard for preliminary analysis of datasets in astronomy. 
+
+Makes use of memory buffering of FITS files through AstroPy, subsampling of data to fit into memory through NumPy, and visualization using Flask and React through Dash
