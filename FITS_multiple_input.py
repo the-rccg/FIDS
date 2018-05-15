@@ -1,13 +1,22 @@
+# -*- coding: utf-8 -*-
+"""
+FITS Dash App
+Quickly sketch and explore data tables and relations sae in FITS format 
+
+@author: RCCG
+"""
+
 # Define Parameters
-input_filename = 'PHAT_BEAST/b16_stats_toothpick_v1.1.fits'
+input_filename = './PHAT_BEAST/b16_stats_toothpick_v1.1.fits'
 max_num_points = 2000
+
 
 # Load Data
 from astropy.io import fits
 data = fits.open(input_filename, memmap=True)[1]
 column_names = data.columns.names
 
-# Check Data Size
+# Subsample when data is too large
 import numpy as np
 num_points = data.data.shape[0]
 if num_points > max_num_points:
@@ -17,17 +26,17 @@ if num_points > max_num_points:
 else: 
     select_points = range(num_points)
 
-# Reduce to useful
-available_indicators = [name for name in column_names if name.split('_')[-1] not in ['p50', 'p84', 'p16', 'Exp']] #df['Indicator Name'].unique()
-print(available_indicators)
+# Reduce Columns to Useful
+available_indicators = [name for name in column_names if name.split('_')[-1] not in ['p50', 'p84', 'p16', 'Exp']]
+print("Available Indicators: {}".format(available_indicators))
 
 # Start App
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
-app = dash.Dash()
-app.title = 'FITS Dashboard'
+app = dash.Dash('fits_dashboard')
+app.title = 'FITS Dashboard: {}'.format(filename)
 
 # Visual layout
 app.layout = html.Div([
@@ -81,9 +90,11 @@ app.layout = html.Div([
      dash.dependencies.Input('yaxis-column', 'value'),
      dash.dependencies.Input('xaxis-type', 'value'),
      dash.dependencies.Input('yaxis-type', 'value')])
+
+
 def update_graph(xaxis_column_name, yaxis_column_name,
-                 xaxis_type, yaxis_type
-                 ):
+                 xaxis_type, yaxis_type):
+    """ update graph based on new selected variables """
 
     return {
         'data': [go.Scatter(
