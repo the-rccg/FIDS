@@ -5,12 +5,12 @@ Makes use of memory buffering of FITS files through AstroPy, subsampling of data
 
 ## Setup
 ### Installing Astropy
-```python
+```cmd
 pip install astropy
 ```
 
 ### Installing Plotly.Dash  (https://dash.plot.ly/installation)
-```python
+```pip
 pip install dash  # The core dash backend
 pip install dash-renderer  # The dash front-end
 pip install dash-html-components  # HTML components
