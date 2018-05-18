@@ -7,12 +7,15 @@ Quickly sketch and explore data tables and relations sae in FITS format
 """
 
 # Define Parameters
-input_filename = './PHAT_BEAST/b16_stats_toothpick_v1.1.fits'
-max_num_points = 2000
+filename = 'b16_stats_toothpick_v1.1.fits'
+filepath = '/home/ilion/0/qd174/Git/PHAT_BEAST/'
+max_num_points = 4000
+
 
 
 # Load Data
 from astropy.io import fits
+input_filename = filepath + filename
 data = fits.open(input_filename, memmap=True)[1]
 column_names = data.columns.names
 
@@ -27,8 +30,8 @@ else:
     select_points = range(num_points)
 
 # Reduce Columns to Useful
-available_indicators = [name for name in column_names if name.split('_')[-1] not in ['p50', 'p84', 'p16', 'Exp']]
-print("Available Indicators: {}".format(available_indicators))
+selected_columns = [name for name in column_names if name.split('_')[-1] not in ['p50', 'p84', 'p16', 'Exp']]
+print("Selected Columns: {}".format(selected_columns))
 
 # Start App
 import dash
@@ -53,7 +56,7 @@ app.layout = html.Div([
         html.Div([
             dcc.Dropdown(
                 id='xaxis-column',
-                options=[{'label': i, 'value': i} for i in available_indicators],
+                options=[{'label': i, 'value': i} for i in selected_columns],
                 value='DEC'
             ),
             dcc.RadioItems(
@@ -68,7 +71,7 @@ app.layout = html.Div([
         html.Div([
             dcc.Dropdown(
                 id='yaxis-column',
-                options=[{'label': i, 'value': i} for i in available_indicators],
+                options=[{'label': i, 'value': i} for i in selected_columns],
                 value='RA'
             ),
             dcc.RadioItems(
@@ -96,10 +99,30 @@ def update_graph(xaxis_column_name, yaxis_column_name,
                  xaxis_type, yaxis_type):
     """ update graph based on new selected variables """
 
-    return {
-        'data': [go.Scatter(
-            x = data.data[xaxis_column_name][select_points],
-            y = data.data[yaxis_column_name][select_points],
+    # allow for special functions on columns
+    # 1. Herzsprung Russel columns
+    # absolut magnitude / luminosity
+    # stellar classification / effective temperatures
+    custom_functions =  {}
+
+    data_dic = {}
+    if xaxis_column_name in selected_columns:
+        data_dic['x'] = data.data[xaxis_column_name][select_points]
+    elif xaxis_column_name in custom_functions.keys():
+        data_dic['x'] = custom_functions[xaxis_column_name]  # TODO: Actually call the function
+    else:
+        print("This should not occur, column should not have been selectabl!")
+    # TODO: function to handle both x and y
+    if yaxis_column_name in selected_columns:
+        data_dic['y'] = data.data[yaxis_column_name][select_points]
+    elif yaxis_column_name in custom_functions.keys():
+        data_dic['y'] = custom_functions[yaxis_column_name]  # TODO: Actually call the function
+    else:
+        print("This should not occur, column should not have been selectabl!")
+    
+    
+    return {'data': [go.Scatter(
+            **data_dic,
             text = data.data['Name'][select_points],
             mode = 'markers',
             marker = {
