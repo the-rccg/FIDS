@@ -9,7 +9,7 @@ Quickly sketch and explore data tables and relations sae in FITS format
 # Define Parameters
 filename = 'b16_stats_toothpick_v1.1.fits'
 filepath = '/home/ilion/0/qd174/Git/PHAT_BEAST/'
-max_num_points = 4000
+max_num_points = 8000
 
 
 
@@ -46,42 +46,57 @@ app.layout = html.Div([
     
     # Data Amount Selector
     # To Be Coded
-    
+        html.Div(
+            [
+                dcc.Slider(
+                    id='num_selection',
+                    min=0,
+                    max=num_points,
+                    value=max_num_points,
+                    step=1000,
+                )
+            ]
+            #html.Div(id='slider-container')
+        ),
     # New Subsample Generator
     # To Be Coded
         
     # Axis Selection
     html.Div([
         # Select X-Axis
-        html.Div([
-            dcc.Dropdown(
-                id='xaxis-column',
-                options=[{'label': i, 'value': i} for i in selected_columns],
-                value='DEC'
-            ),
-            dcc.RadioItems(
-                id='xaxis-type',
-                options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
-                value='Linear',
-                labelStyle={'display': 'inline-block'}
-            )
-        ],
-        style={'width': '48%', 'display': 'inline-block'}),
+        html.Div(
+            [
+                dcc.Dropdown(
+                    id='xaxis-column',
+                    options=[{'label': i, 'value': i} for i in selected_columns],
+                    value='DEC'
+                ),
+                dcc.RadioItems(
+                    id='xaxis-type',
+                    options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
+                    value='Linear',
+                    labelStyle={'display': 'inline-block'}
+                )
+            ],
+            style={'width': '48%', 'display': 'inline-block'}
+        ),
         # Select Y-Axis
-        html.Div([
-            dcc.Dropdown(
-                id='yaxis-column',
-                options=[{'label': i, 'value': i} for i in selected_columns],
-                value='RA'
-            ),
-            dcc.RadioItems(
-                id='yaxis-type',
-                options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
-                value='Linear',
-                labelStyle={'display': 'inline-block'}
-            )
-        ],style={'width': '48%', 'float': 'right', 'display': 'inline-block'})
-    ]),
+        html.Div(
+            [
+                dcc.Dropdown(
+                    id='yaxis-column',
+                    options=[{'label': i, 'value': i} for i in selected_columns],
+                    value='RA'
+                ),
+                dcc.RadioItems(
+                    id='yaxis-type',
+                    options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
+                    value='Linear',
+                    labelStyle={'display': 'inline-block'}
+                )
+            ],
+            style={'width': '48%', 'float': 'right', 'display': 'inline-block'})
+        ]),
 
     dcc.Graph(id='indicator-graphic'),
 
@@ -89,16 +104,21 @@ app.layout = html.Div([
 
 @app.callback(
     dash.dependencies.Output('indicator-graphic', 'figure'),
-    [dash.dependencies.Input('xaxis-column', 'value'),
-     dash.dependencies.Input('yaxis-column', 'value'),
-     dash.dependencies.Input('xaxis-type', 'value'),
-     dash.dependencies.Input('yaxis-type', 'value')])
+    [   
+        dash.dependencies.Input('xaxis-column', 'value'),
+        dash.dependencies.Input('yaxis-column', 'value'),
+        dash.dependencies.Input('xaxis-type', 'value'),
+        dash.dependencies.Input('yaxis-type', 'value'),
+        dash.dependencies.Input('num_selection', 'value')
+    ])
 
 
 def update_graph(xaxis_column_name, yaxis_column_name,
-                 xaxis_type, yaxis_type):
+                 xaxis_type, yaxis_type, num_points
+                 ):
     """ update graph based on new selected variables """
-
+    select_points = np.random.choice(num_points, size=max_num_points, replace=False, p=None)
+    print("resampling with {} points".format(num_points))
     # allow for special functions on columns
     # 1. Herzsprung Russel columns
     # absolut magnitude / luminosity
