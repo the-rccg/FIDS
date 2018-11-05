@@ -55,8 +55,8 @@ app.layout = html.Div([
                     value=max_num_points,
                     step=1000,
                 )
-            ]
-            #html.Div(id='slider-container')
+            ],
+            html.Div(id='slider-container')
         ),
     # New Subsample Generator
     # To Be Coded
@@ -95,15 +95,19 @@ app.layout = html.Div([
                     labelStyle={'display': 'inline-block'}
                 )
             ],
-            style={'width': '48%', 'float': 'right', 'display': 'inline-block'})
-        ]),
+            style={'width': '48%', 'float': 'right', 'display': 'inline-block'}
+        )
+    ]),
 
     dcc.Graph(id='indicator-graphic'),
 
 ])
 
 @app.callback(
-    dash.dependencies.Output('indicator-graphic', 'figure'),
+    [
+        dash.dependencies.Output('indicator-graphic', 'figure'),
+        dash.dependencies.Output('slider-container', 'children')
+    ],
     [   
         dash.dependencies.Input('xaxis-column', 'value'),
         dash.dependencies.Input('yaxis-column', 'value'),
@@ -141,16 +145,19 @@ def update_graph(xaxis_column_name, yaxis_column_name,
         print("This should not occur, column should not have been selectabl!")
     
     
-    return {'data': [go.Scatter(
-            **data_dic,
-            text = data.data['Name'][select_points],
-            mode = 'markers',
-            marker = {
-                'size': 15,
-                'opacity': 0.5,
-                'line': {'width': 0.5, 'color': 'white'}
-            }
-        )],
+    return [{
+        'data': [
+            go.Scatter(
+                **data_dic,
+                text = data.data['Name'][select_points],
+                mode = 'markers',
+                marker = {
+                    'size': 15,
+                    'opacity': 0.5,
+                    'line': {'width': 0.5, 'color': 'white'}
+                }
+            )
+        ],
         'layout': go.Layout(
             xaxis={
                 'title': xaxis_column_name,
@@ -162,8 +169,11 @@ def update_graph(xaxis_column_name, yaxis_column_name,
             },
             margin={'l': 40, 'b': 40, 't': 10, 'r': 0},
             hovermode='closest'
-        )
-    }
+        ),
+        
+    },
+    "number: {}".format(num_points)
+    ]
 
 
 if __name__ == '__main__':

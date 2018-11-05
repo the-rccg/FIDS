@@ -101,6 +101,7 @@ column_properties = {
 ## 
 ## [same flavors as the BEAST fit parameters]
 ## 
+## HST: Hubble Space Telescope
 ## logHST_WFC3_F275W_nd = log10 of the unextinguished WFC3 F275W flux
 ## logHST_WFC3_F275W_wd = log10 of the extinguished WFC3 F275W flux
 ## logHST_WFC3_F336W_nd = log10 of the unextinguished WFC3 F336W flux
@@ -114,6 +115,7 @@ column_properties = {
 ## logHST_WFC3_F160W_nd = log10 of the unextinguished WFC3 F160W flux
 ## logHST_WFC3_F160W_wd = log10 of the extinguished WFC3 F160W flux
 ## 
+## GALEX: GALexy Evolution eXplorer (only UV)
 ## logGALEX_FUV_nd = log10 of the unextinguished GALEX FUV flux
 ## logGALEX_FUV_wd = log10 of the extinguished GALEX FUV flux
 ## logGALEX_NUV_nd = log10 of the unextinguished GALEX FUV flux
