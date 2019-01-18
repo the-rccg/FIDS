@@ -19,5 +19,5 @@ pip install plotly --upgrade  # Plotly graphing library used in examples
 ```
 
 ## Sample View
-![sample view](https://github.com/the-rccg/FITS_dashboard/blob/master/img/status_2018-05-24.png)
+![sample view](https://github.com/the-rccg/FITS_dashboard/blob/master/img/FIDS_screenshot.png)
 
