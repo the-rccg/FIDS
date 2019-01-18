@@ -49,7 +49,7 @@ def getSampleIndices(sample_size, total_size):
 
 # Reduce Columns to Useful
 selected_columns = [name for name in column_names if name.split('_')[-1] not in ['p50', 'p84', 'p16', 'Exp']]
-#print("Selected Columns: {}".format(selected_columns))
+print("Selected Columns: {}".format(selected_columns))
 
 # Start App
 import dash
