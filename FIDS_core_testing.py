@@ -338,34 +338,34 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name,
     }
     
 def get_data(bricks_selected, display_count):
-        # Number of bricks
-        brick_count = len(bricks_selected)
-        # Allocate Memory for Data
-        x_data = np.empty(display_count)  # X-Axis
-        y_data = np.empty(display_count)  # Y-Axis
-        if has_caxis:
-            c_data = np.empty(display_count)  # Color
-        else:
-            c_data = np.array([])
-        text = np.empty(display_count, dtype=str)  # Description
+    # Number of bricks
+    brick_count = len(bricks_selected)
+    # Allocate Memory for Data
+    x_data = np.empty(display_count)  # X-Axis
+    y_data = np.empty(display_count)  # Y-Axis
+    if has_caxis:
+        c_data = np.empty(display_count)  # Color
+    else:
+        c_data = np.array([])
+    text = np.empty(display_count, dtype=str)  # Description
+    t1 = dt.now()
+    print("empty:      {}".format(t1-t0))
+    # Create new random sample
+    print("resampling with {} points".format(display_count))
+    # Add Data to Array
+    current_length = 0
+    for brick_i in bricks_selected:
+        sample_size = int(display_count/brick_count)
+        select_points = getSampleIndices(sample_size, data_counts[brick_i])
+        print("random:     {}".format(dt.now()-t1))
+        x_data[current_length:current_length+sample_size] = data[brick_i].data[xaxis_column_name][select_points]
+        y_data[current_length:current_length+sample_size] = data[brick_i].data[yaxis_column_name][select_points]
+        if has_caxis:  
+            c_data[current_length:current_length+sample_size] = data[brick_i].data[color_column_name][select_points]
+        text[current_length:current_length+sample_size] = data[brick_i].data['Name'][select_points]
+        print("assign {}:  {}".format(brick_i, dt.now()-t1))
+        current_length += sample_size
         t1 = dt.now()
-        print("empty:      {}".format(t1-t0))
-        # Create new random sample
-        print("resampling with {} points".format(display_count))
-        # Add Data to Array
-        current_length = 0
-        for brick_i in bricks_selected:
-            sample_size = int(display_count/brick_count)
-            select_points = getSampleIndices(sample_size, data_counts[brick_i])
-            print("random:     {}".format(dt.now()-t1))
-            x_data[current_length:current_length+sample_size] = data[brick_i].data[xaxis_column_name][select_points]
-            y_data[current_length:current_length+sample_size] = data[brick_i].data[yaxis_column_name][select_points]
-            if has_caxis:  
-                c_data[current_length:current_length+sample_size] = data[brick_i].data[color_column_name][select_points]
-            text[current_length:current_length+sample_size] = data[brick_i].data['Name'][select_points]
-            print("assign {}:  {}".format(brick_i, dt.now()-t1))
-            current_length += sample_size
-            t1 = dt.now()
     return x_data, y_data, c_data
 
 

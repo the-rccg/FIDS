@@ -177,6 +177,15 @@ app.layout = html.Div([
                         ],
                         value='Linear',
                         labelStyle={'display': 'inline-block'}
+                    ),
+                    dcc.RadioItems(
+                        id='yaxis-orientation',
+                        options=[
+                            {'label': i, 'value': i} 
+                                for i in ['increasing', 'reversed']
+                        ],
+                        value='increasing',
+                        labelStyle={'display': 'inline-block'}
                     )
                 ],
                 style={'width': '48%', 'float': 'right', 'display': 'inline-block'}
@@ -196,11 +205,34 @@ app.layout = html.Div([
             ),
         ]
     ),
-
+    html.Div(
+        [
+            dcc.Dropdown(
+                id='size-column',
+                placeholder='Select Size-Axis...',
+                options=[
+                    {'label': i, 'value': i} 
+                        for i in selected_columns
+                ],
+                value=None
+            ),
+        ]
+    ),
     # Scatter Plot
     dcc.Graph(id='indicator-graphic'),
 
-    # Download
+    # Download Selection
+    html.A(
+        'Download *SELECTED* Data',
+        id='download-selection',
+        #download="rawdata.fits",
+        href="",
+        target="_blank"
+    ),
+
+    html.Br(),
+
+    # Download entire brick
     html.A(
         'Download *FULL* Data',
         id='download-full-link',
@@ -210,7 +242,42 @@ app.layout = html.Div([
     ),
 ])
 
+##################################################################################
+# Download Selection
+##################################################################################
+def selected_data_to_csv(selected_data_dict):
+    points = selected_data_dict['points']
+    num_points = len(points)
+    if num_points == 0:
+        return ""
+    if num_points > 10000:
+        print('WARNING large dataset parsing: {}'.format(num_points))
+    from os import linesep 
+    csv_string = "description,x,y" + linesep + "{}".format(linesep).join(['{}, {}, {}'.format(point['text'],  point['x'], point['y']) for point in points])
+    #import pandas as pd
+    #csv_string = pd.DataFrame(points).to_csv()
+    print(csv_string)
+    return csv_string
 
+@app.callback(
+    dash.dependencies.Output('download-selection', 'href'),
+    [dash.dependencies.Input('indicator-graphic', 'selectedData')])
+def download_selected(selected_data):
+    if type(selected_data) == dict:
+        import urllib.parse
+        return "data:text/csv;charset=utf-8,%EF%BB%BF" + urllib.parse.quote(selected_data_to_csv(selected_data), encoding="utf-8")
+    else:
+        return ""
+    #from flask import send_file
+    #send_file(csv,
+    #            #mimetype='text/csv',
+    #            attachment_filename='selection.csv',
+    #            as_attachment=True)
+    
+
+##################################################################################
+# Allow Downloading Entire Brick
+##################################################################################
 @app.callback(dash.dependencies.Output('download-full-link', 'href'),
               [dash.dependencies.Input('brick_selector', 'value')])
 def update_download_link(file_list):
@@ -240,6 +307,18 @@ def download_file():
                 #mimetype='text/csv',
                 attachment_filename=filename,
                 as_attachment=True)
+##################################################################################
+
+
+def get_axis_properties(axis_column_name, axis_type, axis_orientation):
+    return {
+        'title': axis_column_name,
+        'type': 'linear' if axis_type == 'Linear' else 'log',
+        'autorange': 'reversed' if axis_orientation == 'reversed' else True
+    }
+
+def scale_max(arr):
+    return arr/np.max(arr)
 
 @app.callback(
     dash.dependencies.Output('indicator-graphic', 'figure'),
@@ -247,17 +326,17 @@ def download_file():
         dash.dependencies.Input('xaxis-column', 'value'),
         dash.dependencies.Input('yaxis-column', 'value'),
         dash.dependencies.Input('color-column', 'value'),
+        dash.dependencies.Input('size-column', 'value'),
         dash.dependencies.Input('xaxis-type', 'value'),
         dash.dependencies.Input('yaxis-type', 'value'),
         dash.dependencies.Input('xaxis-orientation', 'value'),
+        dash.dependencies.Input('yaxis-orientation', 'value'),
         dash.dependencies.Input('display_count_selection', 'value'),
         dash.dependencies.Input('brick_selector', 'value')
     ])
-
-
-def update_graph(xaxis_column_name, yaxis_column_name, color_column_name,
+def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_column_name,
                  xaxis_type, yaxis_type, 
-                 xaxis_orientation,
+                 xaxis_orientation, yaxis_orientation,
                  display_count, bricks_selected
                  ):
     """ update graph based on new selected variables """
@@ -271,12 +350,6 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name,
         'opacity': settings['marker_opacity'],
         'line': {'width': 0.5, 'color': 'white'}
     }
-    x_axis_properties = {
-        'title': xaxis_column_name,
-        'type': 'linear' if xaxis_type == 'Linear' else 'log'
-    }
-    if xaxis_orientation == 'reversed':
-        x_axis_properties['autorange'] = 'reversed'
 
     # Special Functions on columns
     # 1. Herzsprung Russel columns
@@ -288,20 +361,24 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name,
     from datetime import datetime as dt
     t0 = dt.now()
     # Check for valid axis
+    has_bricks = (type(bricks_selected) is list)
     has_xaxis = (xaxis_column_name in selected_columns)
     has_yaxis = (yaxis_column_name in selected_columns)
     has_caxis = (color_column_name in selected_columns)
+    has_saxis = (size_column_name  in selected_columns)
     # Require X and Y to plot
-    if has_xaxis and has_yaxis:
+    if has_bricks and has_xaxis and has_yaxis:
         # Number of pricks
         brick_count = len(bricks_selected)
         # Allocate Memory for Data
         x_data = np.empty(display_count)  # X-Axis
         y_data = np.empty(display_count)  # Y-Axis
+        c_data = np.array([])  # Color
+        s_data = np.array([])  # Size
         if has_caxis:
             c_data = np.empty(display_count)  # Color
-        else:
-            c_data = np.array([])
+        if has_saxis:
+            s_data = np.empty(display_count)  # Size
         text = np.empty(display_count, dtype=str)  # Description
         t1 = dt.now()
         print("empty:      {}".format(t1-t0))
@@ -317,6 +394,8 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name,
             y_data[current_length:current_length+sample_size] = data[brick_i].data[yaxis_column_name][select_points]
             if has_caxis:  
                 c_data[current_length:current_length+sample_size] = data[brick_i].data[color_column_name][select_points]
+            if has_saxis:  
+                s_data[current_length:current_length+sample_size] = data[brick_i].data[size_column_name][select_points]
             text[current_length:current_length+sample_size] = data[brick_i].data['Name'][select_points]
             print("assign {}:  {}".format(brick_i, dt.now()-t1))
             current_length += sample_size
@@ -339,6 +418,8 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name,
         marker_properties['colorscale'] = settings['color_scale']  # 'Greys', 'YlGnBu', 'Greens', 'YlOrRd', 'Bluered', 'RdBu', 'Reds', 'Blues', 'Picnic', 'Rainbow', 'Portland', 'Jet', 'Hot', 'Blackbody', 'Earth', 'Electric', 'Viridis', 'Cividis'
         marker_properties['showscale'] = True
         marker_properties['colorbar'] = {'title':color_column_name}
+    if has_saxis:
+        marker_properties['size'] = scale_max(s_data)*20
 
     return {'data': [
         go.Scatter(
@@ -348,11 +429,8 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name,
             marker = marker_properties
         )],
         'layout': go.Layout(
-            xaxis=x_axis_properties,
-            yaxis={
-                'title': yaxis_column_name,
-                'type': 'linear' if yaxis_type == 'Linear' else 'log'
-            },
+            xaxis=get_axis_properties(xaxis_column_name, xaxis_type, xaxis_orientation),
+            yaxis=get_axis_properties(yaxis_column_name, yaxis_type, yaxis_orientation),
             margin={'l': 40, 'b': 40, 't': 10, 'r': 0},
             hovermode='closest'
         )
