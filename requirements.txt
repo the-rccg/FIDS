@@ -1,0 +1,11 @@
+dash==0.39.0
+dash-auth==1.2.0
+dash-renderer==0.20.0
+dash-core-components==0.44.0
+dash-html-components==0.14.0
+plotly.graph_objs==2.4.1
+numpy==1.16.2
+astropy==3.1.2
+flask==1.0.2
+dask==1.1.2
+dask-core==1.1.2

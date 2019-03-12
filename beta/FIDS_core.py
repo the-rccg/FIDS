@@ -444,14 +444,8 @@ def get_axis_properties(axis_column_name, axis_type, axis_orientation):
         'autorange': 'reversed' if axis_orientation == 'reversed' else True
     }
 
-def scale_max(arr):
-    arr[np.isinf(arr)] = 0
-    return arr/np.max(arr)
+from data_selection import scale_max
 
-
-#@app.callback(
-#        dash.dependencies.Output('indicator-graphic'),
-#        [])
 
 update_graph_inputs = [
         dash.dependencies.Input('xaxis-column', 'value'),

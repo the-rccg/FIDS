@@ -3,6 +3,10 @@
 # Created by https://www.gitignore.io/api/linux,visualstudiocode,jupyternotebook,jupyternotebooks,visualstudio
 # Edit at https://www.gitignore.io/?templates=linux,visualstudiocode,jupyternotebook,jupyternotebooks,visualstudio
 
+venv
+.DS_Store
+.env
+
 ### JupyterNotebook ###
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
