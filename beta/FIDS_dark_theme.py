@@ -74,14 +74,27 @@ import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
 
-app = dash.Dash('fits_dashboard')
+# Load external dark sheet
+external_stylesheets = ['https://codepen.io/anon/pen/mardKv.css']
+
+# Start App
+app = dash.Dash('fits_dashboard', external_stylesheets=external_stylesheets)
 app.title = 'FITS Dashboard: {}'.format(settings['name'])
 
-dropdown_style = {
-        'padding': '3px'
+theme =  {
+    'dark': True,
+    'detail': '#007439',
+    'primary': '#00EA64',
+    'secondary': '#6E6E6E',
 }
+
+# Allow Dark theme button
+import dash_daq as daq
+
+
+
 # Visual layout
-app.layout = html.Div([
+app.layout = html.Div(id='main', children=[daq.DarkThemeProvider(theme=theme, children=[
     
     # Element 1: Data File Selector
     html.Div(
@@ -96,8 +109,7 @@ app.layout = html.Div([
                 value=None,
                 multi=True
             )
-        ],
-        style=dropdown_style 
+        ]
     ),
 
     # Element 2: Data Amount Selector
@@ -116,11 +128,7 @@ app.layout = html.Div([
                 }
             )
         ],
-        style={'height':34, 
-               #'width':'97%', 
-               'margin':'auto auto',
-               'padding': '0px 12px 0px 12px'
-               }
+        style={'height':34, 'width':'97%', 'margin':'auto auto'}
         #html.Div(id="selection-container")
     ),
 
@@ -166,7 +174,7 @@ app.layout = html.Div([
                         labelStyle={'display': 'inline-block'}
                     )
                 ],
-                style={'width': '49%', 'display': 'inline-block'}
+                style={'width': '48%', 'display': 'inline-block'}
             ),
             # 4.2: Select Y-Axis
             html.Div(
@@ -199,10 +207,9 @@ app.layout = html.Div([
                         labelStyle={'display': 'inline-block'}
                     )
                 ],
-                style={'width': '49%', 'float': 'right', 'display': 'inline-block'}
+                style={'width': '48%', 'float': 'right', 'display': 'inline-block'}
             ),
-        ],
-        style=dropdown_style 
+        ]
     ),
                     
     # Element 5: Color coding
@@ -217,8 +224,7 @@ app.layout = html.Div([
                 ],
                 value=None
             ),
-        ],
-        style=dropdown_style 
+        ]
     ),
             
     # Element 6: Size coding
@@ -233,21 +239,12 @@ app.layout = html.Div([
                 ],
                 value=None
             ),
-        ],
-        style=dropdown_style 
+        ]
     ),
 
     
     # Graph 1: Scatter Plot
-    html.Div(
-            dcc.Graph(id='indicator-graphic'),
-            style={
-                    #'border': 'solid 1px #A2B1C6', 
-                    #'border-radius': '1px', 
-                    'padding': '3px', 
-                    #'margin-top': '20px'
-            }
-    ),
+    dcc.Graph(id='indicator-graphic'),
 
     # Element 8: Download Selection
     html.A(
@@ -268,8 +265,32 @@ app.layout = html.Div([
         href="",
         target="_blank"
     ),
-], style={'border': 'solid 1px #A2B1C6', 'border-radius': '5px', 'padding': '5px', 'margin-top': '20px'})
+    html.Br(),
     
+    # Dark theme button
+    daq.ToggleSwitch(
+        id='toggle-theme',
+        label=['Light', 'Dark'],
+        value=True
+    ), 
+    html.Br(),
+])], style={'border': 'solid 1px #A2B1C6', 'border-radius': '5px', 'padding': '50px', 'margin-top': '20px'})
+    
+@app.callback(
+    dash.dependencies.Output('main', 'style'),
+    [dash.dependencies.Input('toggle-theme', 'value')],
+    state=[dash.dependencies.State('main', 'style')]
+)
+def switch_bg(dark, currentStyle):
+    if(dark):
+        currentStyle.update(
+            backgroundColor='#303030'
+        )
+    else:
+        currentStyle.update(
+            backgroundColor='white'
+        )
+    return currentStyle
 
 ##################################################################################
 # Download Selection
