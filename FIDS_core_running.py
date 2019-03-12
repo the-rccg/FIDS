@@ -17,8 +17,8 @@ from os import listdir
 filename_list = [file for file in listdir(settings['folderpath']) if file[-5:].lower()==".fits"]
 
 # Load Data
-# TODO: Allow dictionary for renaming in display
 from astropy.io import fits
+# TODO: Allow dictionary for renaming in display
 data = {
             filename: fits.open(settings['folderpath'] + filename, memmap=True)[1] 
             for filename in filename_list
@@ -40,12 +40,28 @@ else:
 display_count_max = settings['display_count_max']
 display_count = settings['display_count_default']
 display_count_step = settings['display_count_granularity']
+
 # Default Parameters: No Default
 
-# Get Data Size
+# Subsample when data is too large
+import numpy as np
 data_counts = {filename: data[filename].header['NAXIS2'] for filename in data.keys()}  # Header is fastest way to get number of data points
-# TODO: Subsample only when data is too large
-from data_selection import getSampleIndices
+def getSampleIndices(sample_size, total_size):
+    """ returns data points for the subsample in the range
+
+    Timed Tests:   data_count = 100,000,000;  sample_size = 100,000;
+        926 us  np.random.randint(low=0, high=data_count+1, size=sample_size) 
+        935 us  np.random.choice(data_count, size=sample_size, replace=True, p=None)
+         85 ms  random.sample(range(data_count), sample_size)
+          6 s   np.random.choice(data_count, size=sample_size, replace=False, p=None)
+    """
+    # note: allows multiple identical values, hence n<=num_points, but orders mag faster
+    select_points = np.random.randint(
+                        low=0, high=total_size, 
+                        size=sample_size
+                    )
+    return select_points
+
 
 # Reduce Columns to Useful
 selected_columns = column_names #[name for name in column_names if name.split('_')[-1] not in ['p50', 'p84', 'p16', 'Exp']]
@@ -58,85 +74,6 @@ import dash_html_components as html
 import plotly.graph_objs as go
 app = dash.Dash('fits_dashboard')
 app.title = 'FITS Dashboard: {}'.format(settings['name'])
-
-##################################################################################
-#   Allow range slicing
-##################################################################################
-# Add column criteria selection
-col_list = column_names[0:2]
-column_details = {
-    col_name: {
-        'min': data['b16_stats_toothpick_v1.1.fits'].data[col_name].min(),
-        'max': data['b16_stats_toothpick_v1.1.fits'].data[col_name].max(),
-    }
-    for col_name in col_list
-}
-    
-
-def get_log_range(column_name, column_details):
-    """ returns the log range as tuple """
-    if column_details[column_name]['min'] > 0:
-        log_range = (
-            math.floor(math.log(column_details[column_name]['min'], 10)), 
-            math.ceil(math.log(column_details[column_name]['min'], 10) 
-                + math.log(column_details[column_name]['max']/column_details[column_name]['min'], 10)
-            )
-        )
-    elif column_details[column_name]['min'] < 0:
-        log_range = (
-            -math.ceil(math.log(-column_details[column_name]['min'], 10)), 
-            math.ceil(
-                    math.log(column_details[column_name]['max'], 10)
-            )
-        )
-    else: 
-        log_range = (
-            0, 
-            math.ceil(
-                math.log(column_details[column_name]['min'], 10) +   
-                math.log(
-                    column_details[column_name]['max']/column_details[column_name]['min'], 
-                    10)
-            )
-        )
-    return log_range
-
-def construct_log_range(column_name, column_details):
-    ''' construct slider with log markings adjusting for negatives '''
-    marks = {'0':0, **{
-        (i): '{}'.format(10 ** i) 
-        for i in range(*get_log_range(column_name, column_details))
-    }}
-    return marks    
-    
-def transform_to_log(value):
-    ''' transform to log '''
-    if(type(value) == list):
-        valueList = []
-        for i in value:
-            valueList.append(10 ** i)
-        return valueList
-    else:
-        return 10 ** value
-    
-import math
-elem_list = [
-    html.Div(
-        id = '{}_div'.format(column_name), 
-        children=[
-            #html.H4('{}'.format(column_name), 
-            #        style={'display':'inline-block', 'width':60, 'margin': '0 auto', 'float':'left'}),
-            dcc.RangeSlider(
-                id = '{}'.format(column_name),
-                min = column_details[column_name]['min'],
-                max = column_details[column_name]['max'],
-                marks = construct_log_range(column_name, column_details)
-            )
-        ]
-    )
-    for column_name in col_list
-]
-##################################################################################
 
 # Visual layout
 app.layout = html.Div([
@@ -286,24 +223,7 @@ app.layout = html.Div([
             ),
         ]
     ),
-    
-    # Element 7: Add column slicors
-    html.Div(
-        [
-            dcc.Dropdown(
-                id='column_slicors',
-                placeholder='Select fields to slice on...',
-                options=[
-                    {'label': '{}'.format(i), 'value': i} 
-                        for i in col_list
-                ],
-                value=None,
-                multi=True
-            )
-        ]
-    ),
 
-    *elem_list,
     
     # Graph 1: Scatter Plot
     dcc.Graph(id='indicator-graphic'),
@@ -329,30 +249,34 @@ app.layout = html.Div([
     ),
 ])
     
-    
-output_list = [
-    dash.dependencies.Output('{}_div'.format(column_name), 'style')
-    for column_name in col_list
-]
-@app.callback(
-        output_list,
-        [dash.dependencies.Input('column_slicors', 'value')]
-        )
-def hide_unhide(criteria_show_list):
-    # Hide all
-    show_dict = {
-        '{}_div'.format(column_name):{'display': 'none'} 
-        for column_name in col_list
-    }
-    # Show selected
-    for col_show in criteria_show_list:
-        show_dict[col_show] = {'display': 'block'}
-    return tuple(show_dict.values())
 
 ##################################################################################
 # Download Selection
 ##################################################################################
-from download import selected_data_to_csv
+def selected_data_to_csv(selected_data_dict, xaxis_name, yaxis_name, caxis_name, saxis_name):
+    if saxis_name:
+        print("WARNING SIZE IS ADJUSTED FOR VISUALIZATION!!!")
+    points = selected_data_dict['points']
+    #print(points)
+    num_points = len(points)
+    if num_points == 0:
+        return ""
+    if num_points > 10000:
+        print('WARNING large dataset parsing: {}'.format(num_points))
+    from os import linesep 
+    if not caxis_name and not saxis_name:
+        csv_string = "description,{},{}".format(xaxis_name, yaxis_name) + linesep + "{}".format(linesep).join(['{}, {}, {}'.format(point['text'], point['x'], point['y']) for point in points])
+    elif not saxis_name:
+        csv_string = "description,{},{},{}".format(xaxis_name,yaxis_name,caxis_name) + linesep + "{}".format(linesep).join(['{}, {}, {}, {}'.format(point['text'], point['x'], point['y'], point['marker.color']) for point in points])
+    #elif not caxis_name:
+    #    csv_string = "description,{},{},{}".format(xaxis_name,yaxis_name,saxis_name) + linesep + "{}".format(linesep).join(['{}, {}, {}, {}'.format(point['text'], point['x'], point['y'], point['marker.size']) for point in points])
+    #elif caxis_name and saxis_name:
+    #    csv_string = "description,{},{},{}, {}".format(xaxis_name,yaxis_name,caxis_name,saxis_name) + linesep + "{}".format(linesep).join(['{}, {}, {}, {}, {}'.format(point['text'], point['x'], point['y'], point['marker.color'], point['marker.size']) for point in points])
+    else:
+        import pandas as pd
+        csv_string = pd.DataFrame(points).to_csv()
+    print(csv_string)
+    return csv_string
 
 @app.callback(
     dash.dependencies.Output('download-selection', 'href'),
@@ -577,10 +501,6 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         )
     }
 
-def get_conditional_data(brick_data, condition_dict):
-    
-    brick_data
-    return
 
 
 if __name__ == '__main__':
