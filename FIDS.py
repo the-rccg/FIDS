@@ -267,11 +267,19 @@ app.layout = html.Div([
     
     # Graph 1: Scatter Plot
     html.Div(
-            dcc.Graph(id='indicator-graphic'),
+            dcc.Graph(
+                id='indicator-graphic',
+                #style={'responsive':'true'},
+                #config={'responsive':True}
+            ),
             style={
                     #'border': 'solid 1px #A2B1C6', 
-                    #'border-radius': '1px', 
+                    #'border-radius': '0px', 
                     'padding': '3px', 
+                    #'width': '100%',
+                    #'height': '100%',
+                    #'resize': 'vertical',
+                    #'overflow': 'auto'
                     #'margin-top': '20px'
             }
     ),
