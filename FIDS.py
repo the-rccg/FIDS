@@ -461,6 +461,9 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
     has_saxis = (size_column_name  in selected_columns)
     # Require X and Y to plot
     if has_bricks and has_xaxis and has_yaxis:
+        # Create Title
+        title = '{} vs. {}'.format(xaxis_column_name, yaxis_column_name)
+
         # Number of pricks
         brick_count = len(bricks_selected)
         
@@ -509,12 +512,21 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
     }
     # Add color scale
     if has_caxis:
+        # Update Title
+        title += ' colored by {}'.format(color_column_name)
+        # Set Color
         marker_properties['color'] = c_data  
         marker_properties['colorscale'] = settings['color_scale']  # 'Greys', 'YlGnBu', 'Greens', 'YlOrRd', 'Bluered', 'RdBu', 'Reds', 'Blues', 'Picnic', 'Rainbow', 'Portland', 'Jet', 'Hot', 'Blackbody', 'Earth', 'Electric', 'Viridis', 'Cividis'
         marker_properties['showscale'] = True
         marker_properties['colorbar'] = {'title':color_column_name}
     if has_saxis:
+        # Update Title
+        title += ' sized by {}'.format(size_column_name)
+        # Set Size
         marker_properties['size'] = scale_max(s_data)*20
+
+    # Finish Title
+    title += '<br><i>('+', '.join(bricks_selected)+')</i>'
 
     return {'data': [
         go.Scatter(
@@ -524,9 +536,10 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
             marker = marker_properties
         )],
         'layout': go.Layout(
+            title=title,
             xaxis=get_axis_properties(xaxis_column_name, xaxis_type, xaxis_orientation),
             yaxis=get_axis_properties(yaxis_column_name, yaxis_type, yaxis_orientation),
-            margin={'l': 40, 'b': 40, 't': 10, 'r': 0},
+            margin={'l': 40, 'b': 40, 't': 60, 'r': 0},
             hovermode='closest'
         )
     }
