@@ -74,6 +74,10 @@ import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
 
+
+external_stylesheets = ['assets/bWLwgP.css']
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app = dash.Dash('fits_dashboard')
 app.title = 'FITS Dashboard: {}'.format(settings['name'])
 
@@ -119,7 +123,7 @@ app.layout = html.Div([
         style={'height':34, 
                #'width':'97%', 
                'margin':'auto auto',
-               'padding': '0px 12px 0px 12px'
+               'padding': '0px 15px 3px 15px'
                }
         #html.Div(id="selection-container")
     ),
@@ -147,23 +151,34 @@ app.layout = html.Div([
                         ),
                         #],
                         #style={'display':'inline-block', 'margin':'auto auto', 'width':'100%'}),
-                    dcc.RadioItems(
-                        id='xaxis-type',
-                        options=[
-                            {'label': i, 'value': i} 
-                                for i in ['Linear', 'Log']
-                        ],
-                        value='Linear',
-                        labelStyle={'display': 'inline-block'}
+                    html.Div([
+                        dcc.RadioItems(
+                            id='xaxis-type',
+                            options=[
+                                {'label': i, 'value': i} 
+                                    for i in ['Linear', 'Log']
+                            ],
+                            value='Linear',
+                            labelStyle={'display': 'inline-block'}
+                        )], style={'float': 'left', 'display': 'inline-block'}
                     ),
-                    dcc.RadioItems(
-                        id='xaxis-orientation',
-                        options=[
-                            {'label': i, 'value': i} 
-                                for i in ['increasing', 'reversed']
-                        ],
-                        value='increasing',
-                        labelStyle={'display': 'inline-block'}
+                    html.Div(
+                        [
+                            dcc.RadioItems(
+                                id='xaxis-orientation',
+                                options=[
+                                    {'label': i, 'value': i} 
+                                        for i in ['increasing', 'reversed']
+                                ],
+                                value='increasing',
+                                labelStyle={'display': 'inline-block'}
+                            )
+                        ], 
+                        style={
+                                'float': 'right', 
+                                'display': 'inline-block', 
+                                'padding': '0px 5px 0px 0px'  # Adjust right alignment
+                        }
                     )
                 ],
                 style={'width': '49%', 'display': 'inline-block'}
@@ -180,23 +195,35 @@ app.layout = html.Div([
                         ],
                         value=settings['default_y_column']
                     ),
-                    dcc.RadioItems(
-                        id='yaxis-type',
-                        options=[
-                            {'label': i, 'value': i} 
-                                for i in ['Linear', 'Log']
-                        ],
-                        value='Linear',
-                        labelStyle={'display': 'inline-block'}
+                    html.Div([
+                        #html.H6('Scale:', style={'font-size':'12px', 'display':'inline-block', 'width':'50px'}),
+                        dcc.RadioItems(
+                            id='yaxis-type',
+                            options=[
+                                {'label': i, 'value': i} 
+                                    for i in ['Linear', 'Log']
+                            ],
+                            value='Linear',
+                            labelStyle={'display': 'inline-block'}
+                        )], style={'width': '49%', 'display': 'inline-block'}
                     ),
-                    dcc.RadioItems(
-                        id='yaxis-orientation',
-                        options=[
-                            {'label': i, 'value': i} 
-                                for i in ['increasing', 'reversed']
-                        ],
-                        value='increasing',
-                        labelStyle={'display': 'inline-block'}
+                    html.Div(
+                        [
+                            dcc.RadioItems(
+                                id='yaxis-orientation',
+                                options=[
+                                    {'label': i, 'value': i} 
+                                        for i in ['increasing', 'reversed']
+                                ],
+                                value='increasing',
+                                labelStyle={'display': 'inline-block'}
+                            )
+                        ], 
+                        style={
+                                'float': 'right', 
+                                'display': 'inline-block', 
+                                'padding':'0px 5px 0px 0px'  # Adjust right alignment
+                        }
                     )
                 ],
                 style={'width': '49%', 'float': 'right', 'display': 'inline-block'}
@@ -251,22 +278,22 @@ app.layout = html.Div([
 
     # Element 8: Download Selection
     html.A(
-        'Download *SELECTED* Data',
+        html.Button('Download *SELECTED* Data'),
         id='download-selection',
         #download="rawdata.fits",
         href="",
-        target="_blank"
+        target="_blank",
+        style={'padding': '3px 20px 3px 3px'}
     ),
-
-    html.Br(),
 
     # Element 9: Download entire brick
     html.A(
-        'Download *FULL* Data',
+        html.Button('Download *CURRENT BRICK*'),
         id='download-full-link',
         download="rawdata.fits",
         href="",
-        target="_blank"
+        target="_blank",
+        style={'padding': '3px'}
     ),
 ], style={'border': 'solid 1px #A2B1C6', 'border-radius': '5px', 'padding': '5px', 'margin-top': '20px'})
     
