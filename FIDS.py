@@ -14,7 +14,7 @@ settings = json.load(open('settings.json'))
 # File names
 # TODO: Allow dictionary for renaming in display
 from os import listdir
-filename_list = [file for file in listdir(settings['folderpath']) if file[-5:].lower()==".fits"]
+filename_list = sorted([file for file in listdir(settings['folderpath']) if file[-5:].lower()==".fits"])
 
 # Load Data
 from astropy.io import fits
@@ -26,15 +26,15 @@ data = {
 
 # Defining columns
 # TODO: Allow dictionary for renaming in dispaly
-column_names_file = settings['columns_to_use']
-column_names_data = data[filename_list[0]].columns.names
+column_names_file = sorted(settings['columns_to_use'])
+column_names_data = sorted(data[filename_list[0]].columns.names)
 if column_names_file:
     column_names = [
         column_name for column_name in column_names_file 
             if column_name in column_names_data
     ]
 else:
-    column_names = data[filename_list[0]].columns.names
+    column_names = sorted(data[filename_list[0]].columns.names)
 
 # Draw Params
 display_count_max = settings['display_count_max']
@@ -75,7 +75,7 @@ import dash_html_components as html
 import plotly.graph_objs as go
 
 
-external_stylesheets = ['assets/bWLwgP.css']
+external_stylesheets = ['assets/FIDS.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app = dash.Dash('fits_dashboard')
@@ -86,6 +86,7 @@ dropdown_style = {
 }
 # Visual layout
 app.layout = html.Div([
+html.Div([
     
     # Element 1: Data File Selector
     html.Div(
@@ -286,7 +287,9 @@ app.layout = html.Div([
 
     # Element 8: Download Selection
     html.A(
-        html.Button('Download *SELECTED* Data'),
+        html.Button(
+                'Download *SELECTED* Data', 
+                className='button-primary'),
         id='download-selection',
         #download="rawdata.fits",
         href="",
@@ -296,14 +299,35 @@ app.layout = html.Div([
 
     # Element 9: Download entire brick
     html.A(
-        html.Button('Download *CURRENT BRICK*'),
+        html.Button('Download *CURRENT BRICK*', 
+                     className='button-primary', type='button-primary'),
         id='download-full-link',
         download="rawdata.fits",
         href="",
         target="_blank",
         style={'padding': '3px'}
     ),
-], style={'border': 'solid 1px #A2B1C6', 'border-radius': '5px', 'padding': '5px', 'margin-top': '20px'})
+
+], 
+style = { 
+    'border': 'solid 1px #A2B1C6', 
+    'border-radius': '5px', 
+    'padding': '5px', 
+    #'margin-top': '20px', 
+    'flex': '1 0 auto'}),
+# Element 10: Footer with links
+html.Div(
+    [
+        html.H6(
+            'FIDS - Flexible Imaging and Display System, provided by Ruprecht-Karls Universitaet Heidelberg',
+            style={'font-size':'14px', 'padding':'5px'}
+        )
+    ], 
+    className='footer', 
+    style={'flex-shrink': '0'}
+),
+#html.Footer('test',style={'flex-shrink': '0'})
+])
     
 
 ##################################################################################
@@ -492,8 +516,12 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         
         # Add Data to Array
         current_length = 0
-        for brick_i in bricks_selected:
-            sample_size = int(display_count/brick_count)
+        for ix, brick_i in enumerate(bricks_selected):
+            sample_size = round(display_count/brick_count)
+            # Fix uneven split by rounding, then fill remainder: introduces a skew in data
+            if ix == brick_count-1 and brick_count%2 == 1:
+                sample_size = display_count-current_length
+                print("adjustment done: {}".format(sample_size))
             select_points = getSampleIndices(sample_size, data_counts[brick_i])
             print("random:     {}".format(dt.now()-t1))
             x_data[current_length:current_length+sample_size] = data[brick_i].data[xaxis_column_name][select_points]
@@ -506,11 +534,13 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
             print("assign {}:  {}".format(brick_i, dt.now()-t1))
             current_length += sample_size
             t1 = dt.now()
+        print(current_length)
     else:
         x_data = np.array([])
         y_data = np.array([])
         c_data = np.array([])
         text = np.array([''])
+        title = ''
         
 
     # Format for sending  
@@ -532,9 +562,9 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         title += ' sized by {}'.format(size_column_name)
         # Set Size
         marker_properties['size'] = scale_max(s_data)*20
-
     # Finish Title
-    title += '<br><i>('+', '.join(bricks_selected)+')</i>'
+    if has_bricks:
+        title += '<br><i>('+', '.join(sorted(bricks_selected))+')</i>'
 
     return {'data': [
         go.Scatter(
@@ -547,7 +577,7 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
             title=title,
             xaxis=get_axis_properties(xaxis_column_name, xaxis_type, xaxis_orientation),
             yaxis=get_axis_properties(yaxis_column_name, yaxis_type, yaxis_orientation),
-            margin={'l': 40, 'b': 40, 't': 60, 'r': 0},
+            margin={'l': 40, 'b': 40, 't': 70, 'r': 0},
             hovermode='closest'
         )
     }

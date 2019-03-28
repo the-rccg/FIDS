@@ -6,6 +6,7 @@
 venv
 .DS_Store
 .env
+_backup
 
 ### JupyterNotebook ###
 .ipynb_checkpoints
@@ -40,6 +41,7 @@ venv
 .nfs*
 
 ### VisualStudioCode ###
+.vscode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
