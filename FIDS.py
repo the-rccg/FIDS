@@ -585,4 +585,4 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port='5001')# host='129.206.102.157')
+    app.run_server(debug=True, host=settings['host'], port=settings['port'])# host='129.206.102.157')

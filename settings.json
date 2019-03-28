@@ -11,5 +11,7 @@
     "default_x_column": "",
     "default_y_column": "",
     "default_color_column" : "logA_Best",
-    "display_count_default": 4000
+    "display_count_default": 4000,
+    "run_port": 80,
+    "host":"0.0.0.0",
 }
