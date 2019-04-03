@@ -10,6 +10,16 @@ import json
 
 # Load Settings
 settings = json.load(open('settings.json'))
+debug = settings['debug']
+if debug:
+    print("---- Running in Debug-Mode ----")
+    host = '127.0.0.1'
+    port = '5001'
+    enable_login = False
+else:
+    host = settings['host']
+    port = settings['port']
+    enable_login = settings['enable_login']
 
 # File names
 # TODO: Allow dictionary for renaming in display
@@ -66,19 +76,89 @@ def getSampleIndices(sample_size, total_size):
 selected_columns = column_names #[name for name in column_names if name.split('_')[-1] not in ['p50', 'p84', 'p16', 'Exp']]
 #print("Selected Columns: {}".format(selected_columns))
 
-###############################################################################
-# DASH Application
-###############################################################################
+
 import dash
+import dash_auth
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
 
 
-external_stylesheets = ['assets/FIDS.css']
+##################################################################################
+#   Allow range slicing
+##################################################################################
+# Add column criteria selection
+slice_col_list = column_names[0:3]
+print("Slice Col List: ", slice_col_list)
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-app = dash.Dash('fits_dashboard')
+from io_tools import load_json
+brick_column_details = load_json('brick_column_details.json', savepath=settings['savepath'])
+
+# Cut out bricks without computed details
+filename_list = [filename for filename in filename_list if filename in brick_column_details.keys()]
+
+column_details = {
+    col_name: {
+        'min': np.min([brick_column_details[brick_name][col_name]['min'] for brick_name in filename_list]),
+        'max': np.max([brick_column_details[brick_name][col_name]['max'] for brick_name in filename_list]),
+    }
+    for col_name in slice_col_list
+}
+slice_col_list = [col for col in slice_col_list if col in column_details.keys()]
+
+from slider_magic import get_range_slider, get_log_range_slider
+from pprint import pprint
+slice_style = {#'height':34, 
+               #'width':'97%', 
+               #'margin':'auto auto',
+               'margin': '0px 15px 0px 15px'}
+slice_list = [
+    html.Div(
+        id = '{}_div'.format(column_name), 
+        children=[
+            #get_log_range_slider(
+            #    column_name,
+            #    column_details,
+            #    id_given = '{}'.format(column_name),
+            #    granularity = settings['selection_granularity']
+            #)
+            get_range_slider(
+                column_name, 
+                id_given = '{}'.format(column_name), 
+                col_range = [
+                    column_details[column_name]['min'], 
+                    column_details[column_name]['max']
+                ], 
+                marks=None, 
+                granularity=settings['selection_granularity']
+            )
+        ],
+        style={**slice_style,
+               'display': None
+        }
+    )
+    for column_name in slice_col_list
+]
+slice_inputs = [dash.dependencies.Input('{}'.format(col_name), 'value') 
+                    for col_name in slice_col_list]
+##################################################################################
+
+
+###############################################################################
+# DASH Application
+###############################################################################
+external_stylesheets = ['assets/FIDS.css']
+external_userbase = [
+    ['hello', 'world']
+]
+
+app = dash.Dash(settings['name'], external_stylesheets=external_stylesheets)
+if not settings['debug']:
+    auth = dash_auth.BasicAuth(
+        app,
+        external_userbase
+    )
+
 app.title = 'FITS Dashboard: {}'.format(settings['name'])
 
 dropdown_style = {
@@ -265,6 +345,25 @@ html.Div([
         style=dropdown_style 
     ),
 
+    # Element 7: Add column slicors
+    html.Div(
+        [
+            dcc.Dropdown(
+                id='column_slicer',
+                placeholder='Select fields to slice on...',
+                options=[
+                    {'label': '{}'.format(i), 'value': i} 
+                        for i in slice_col_list
+                ],
+                value=None,
+                multi=True
+            )
+        ],
+        style=dropdown_style
+    ),
+
+    *slice_list,
+
     
     # Graph 1: Scatter Plot
     html.Div(
@@ -406,31 +505,168 @@ def download_file():
                 as_attachment=True)
 ##################################################################################
 
-def get_data(brick_data, axis_name_list, sample_size=[]):
+output_list = [
+    dash.dependencies.Output('{}_div'.format(column_name), 'style')
+    for column_name in slice_col_list
+]
+@app.callback(
+        output_list,
+        [dash.dependencies.Input('column_slicer', 'value')]
+        )
+def hide_unhide(criteria_show_list):
+    # Hide all
+    show_dict = {
+        '{}_div'.format(column_name):{**slice_style, 'display': 'none'} 
+        for column_name in slice_col_list
+    }
+    # Show selected
+    if criteria_show_list:
+        for col_show in criteria_show_list:
+            show_dict['{}_div'.format(col_show)] = {**slice_style, 'display': 'block'}
+        print(show_dict)
+    return list(show_dict.values())
+
+
+##################################################################################
+#   Getting Data
+##################################################################################
+def get_data(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_dict={}, brick_use=1):
     """ 
+        TODO: 
+            Speed comparisons
+            Implement Dask
+    
+        References:
+            FITS IO (TableData) - http://docs.astropy.org/en/stable/io/fits/ 
+            FITS_rec has as base numpy.recarray, inherits all methods of numpy.ndarray
+            NumPy Structured Arrays - https://docs.scipy.org/doc/numpy/user/basics.rec.html
+            NumPy Recarray - https://docs.scipy.org/doc/numpy/reference/generated/numpy.recarray.html
+            NumPy Record - https://docs.scipy.org/doc/numpy/reference/generated/numpy.record.html 
+
         FITS rec can be accessed with 
-            FITS_rec[col_name][selected_points]
-            FITS_rec[selected_points][col_list]
+            FITS_rec[col_name][point_idx_list]
+            FITS_rec[point_idx_list][col_name]
+
         but NOT with
-        
-            FITS_rec[col_list][selected_points]
-            FITS_rec[[col_list]][selected_points]
-            FITS_rec[*col_list][selected_points]
-            FITS_rec[**col_list][selected_points]
-            FITS_rec[[*col_list]][selected_points]
+            FITS_rec[point_idx_list][col_list]
+            FITS_rec[col_list][point_idx_list]
+            FITS_rec[[col_list]][point_idx_list]
+            FITS_rec[*col_list][point_idx_list]
+            FITS_rec[**col_list][point_idx_list]
+            FITS_rec[[*col_list]][point_idx_list]
             
-            FITS_rec[col_tuple][selected_points]
-            FITS_rec[[col_tuple]][selected_points]
-            FITS_rec[*col_tuple][selected_points]
-            FITS_rec[[*col_tuple]][selected_points]
-            FITS_rec[col_name][selected_points]
+            FITS_rec[col_tuple][point_idx_list]
+            FITS_rec[[col_tuple]][point_idx_list]
+            FITS_rec[*col_tuple][point_idx_list]
+            FITS_rec[[*col_tuple]][point_idx_list]
+            FITS_rec[col_name][point_idx_list]
             
-            FITS_rec[col_list, selected_points]
-            FITS_rec[selected_points, col_list]
+            FITS_rec[col_list, point_idx_list]
+            FITS_rec[point_idx_list, col_list]
     """
-    select_points = getSampleIndices(sample_size, brick_data)
-    brick_data[select_points][axis_name_list]
-    return 
+    print("Getting {} points".format(sample_size))
+    print(axis_name_list)
+    sufficient_data = False
+    brick_data_types = dict(brick_data.data.dtype.descr)
+    selected_data = {}
+    if criteria_dict:
+        selected_data = {
+            axis_name:np.empty(sample_size, dtype=brick_data_types[axis_name])
+            for axis_name in axis_name_list
+        }
+    current_length = 0
+    while not sufficient_data:
+        # Slicing 
+        if criteria_dict:
+            # Oversample by 1/brick_use.
+            select_points = getSampleIndices(int(round(sample_size/brick_use)), brick_size)
+            new_data = slice_data(
+                brick_data.data[select_points],
+                axis_name_list,
+                criteria_dict)  
+            data_size = min(sample_size-current_length, min(sample_size, len(new_data[axis_name_list[0]])))
+            print("new slice: {}/{}".format(len(new_data), int(round(sample_size/brick_use))))
+            for axis_name in axis_name_list:
+                selected_data[axis_name][current_length:current_length+data_size] = new_data[axis_name][0:data_size]
+            current_length += data_size
+            # Check for sufficienct
+            if current_length >= sample_size:
+                sufficient_data = True
+        # Simple
+        else:
+            select_points = getSampleIndices(sample_size, brick_size)
+            selected_data = reduce_cols(brick_data.data[select_points], axis_name_list)
+            sufficient_data = True
+    # Return data
+    return selected_data
+##################################################################################
+
+from data_selector import get_limits, reduce_cols, slice_data, get_brick_usage
+
+##################################################################################
+#   make slicers dynamic
+##################################################################################
+from slider_magic import get_marks
+@app.callback(
+    [
+        dash.dependencies.Output('{}'.format(col_name), 'min') 
+        for col_name in slice_col_list
+    ] + [
+        dash.dependencies.Output('{}'.format(col_name), 'max') 
+        for col_name in slice_col_list
+    ] + [
+        dash.dependencies.Output('{}'.format(col_name), 'marks') 
+        for col_name in slice_col_list
+    ],
+    [dash.dependencies.Input('brick_selector', 'value')]
+)
+def update_slice_limits(bricks_selected):
+    '''  '''
+    print("update_slice_limits")
+    if bricks_selected:
+        mins = [
+            # Min
+            np.min([brick_column_details[brick_name][col_name]['min'] for brick_name in bricks_selected])
+            for col_name in slice_col_list
+        ] 
+        maxs = [
+            # Max
+            np.max([brick_column_details[brick_name][col_name]['max'] for brick_name in bricks_selected])
+            for col_name in slice_col_list
+        ]
+        # Marks
+        marks = [
+            get_marks(np.array([mins[idx], maxs[idx]]))
+            for idx in range(len(mins))
+        ]
+        reduced_limits = mins + maxs + marks
+        print('red two: ', reduced_limits)
+    else:
+        reduced_limits = [
+            # Min
+            column_details[col_name]['min'] 
+            for col_name in slice_col_list
+        ] + [
+            # Max
+            column_details[col_name]['max']
+            for col_name in slice_col_list
+        ]        
+        # Marks
+        reduced_limits += [
+            get_marks(
+                np.array([
+                    reduced_limits[idx], 
+                    reduced_limits[idx+int(len(reduced_limits)/2)]
+                ])
+            )
+            for idx in range(int(len(reduced_limits)/2))
+        ]
+    print("finished update_slice_limits")
+    return reduced_limits
+
+
+##################################################################################
+
 
 
 def get_axis_properties(axis_column_name, axis_type, axis_orientation):
@@ -454,7 +690,8 @@ update_graph_inputs = [
         dash.dependencies.Input('xaxis-orientation', 'value'),
         dash.dependencies.Input('yaxis-orientation', 'value'),
         dash.dependencies.Input('display_count_selection', 'value'),
-        dash.dependencies.Input('brick_selector', 'value')
+        dash.dependencies.Input('brick_selector', 'value'),
+        *slice_inputs
 ]
 from datetime import datetime as dt
 @app.callback(
@@ -463,9 +700,21 @@ from datetime import datetime as dt
 def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_column_name,
                  xaxis_type, yaxis_type, 
                  xaxis_orientation, yaxis_orientation,
-                 display_count, bricks_selected, *args
+                 display_count, bricks_selected, *args, **kwargs
                  ):
     """ update graph based on new selected variables """
+    print('args: ', args)
+    #print('kwargs: ', kwargs)
+
+    criteria_dict = {}
+    if args:
+        # NOTE: REMEMBER TO DELOG IF LOG USED
+        criteria_dict = {slice_col_list[i]:limits for i, limits in enumerate(args)}
+        #print(criteria_dict)
+        if bricks_selected and criteria_dict:
+            criteria_dict = get_limits(bricks_selected, criteria_dict, brick_column_details)
+        else:
+            criteria_dict = {}
 
     # Brick selection
     print("Brick {} selected".format(bricks_selected))
@@ -495,42 +744,56 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
     if has_bricks and has_xaxis and has_yaxis:
         # Create Title
         title = '{} vs. {}'.format(xaxis_column_name, yaxis_column_name)
-
-        # Number of pricks
-        brick_count = len(bricks_selected)
         
         # Allocate Memory for Data
         x_data = np.empty(display_count)  # X-Axis
         y_data = np.empty(display_count)  # Y-Axis
-        c_data = np.array([])  # Color
-        s_data = np.array([])  # Size
-        if has_caxis:
-            c_data = np.empty(display_count)  # Color
-        if has_saxis:
-            s_data = np.empty(display_count)  # Size
+        if has_caxis:  c_data = np.empty(display_count)  # Color
+        else:          c_data = np.array([])
+        if has_saxis:  s_data = np.empty(display_count)  # Size
+        else:          s_data = np.array([])
         text = np.empty(display_count, dtype=str)  # Description
         t1 = dt.now()
         print("empty:      {}".format(t1-t0))
         # Create new random sample
         print("resampling with {} points".format(display_count))
         
+        
+        # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
+        brick_usage = get_brick_usage(bricks_selected, criteria_dict, brick_column_details)
+        print(brick_usage)
+        bricks_selected = [
+            brick for brick in bricks_selected 
+            if brick_usage[brick]>settings['min_brick_usage']]
+        brick_count = len(bricks_selected)  # Number of bricks
         # Add Data to Array
         current_length = 0
         for ix, brick_i in enumerate(bricks_selected):
             sample_size = round(display_count/brick_count)
             # Fix uneven split by rounding, then fill remainder: introduces a skew in data
             if ix == brick_count-1 and brick_count%2 == 1:
-                sample_size = display_count-current_length
+                sample_size = int(display_count-current_length)
                 print("adjustment done: {}".format(sample_size))
-            select_points = getSampleIndices(sample_size, data_counts[brick_i])
-            print("random:     {}".format(dt.now()-t1))
-            x_data[current_length:current_length+sample_size] = data[brick_i].data[xaxis_column_name][select_points]
-            y_data[current_length:current_length+sample_size] = data[brick_i].data[yaxis_column_name][select_points]
+            #select_points = getSampleIndices(sample_size, data_counts[brick_i])
+            #print("random:     {}".format(dt.now()-t1))
+            axis_name_list = [settings['name_column'], xaxis_column_name, yaxis_column_name]
+            if has_caxis:  axis_name_list.append(color_column_name)
+            if has_saxis:  axis_name_list.append(size_column_name)
+            selected_data = get_data(
+                    data[brick_i],#.data, 
+                    axis_name_list, 
+                    sample_size=sample_size, 
+                    brick_size=data_counts[brick_i],
+                    criteria_dict=criteria_dict,
+                    brick_use=brick_usage[brick_i])
+            print("slice data: {}".format(dt.now()-t1))
+            x_data[current_length:current_length+sample_size] = selected_data[xaxis_column_name]
+            y_data[current_length:current_length+sample_size] = selected_data[yaxis_column_name]
             if has_caxis:  
-                c_data[current_length:current_length+sample_size] = data[brick_i].data[color_column_name][select_points]
+                c_data[current_length:current_length+sample_size] = selected_data[color_column_name]
             if has_saxis:  
-                s_data[current_length:current_length+sample_size] = data[brick_i].data[size_column_name][select_points]
-            text[current_length:current_length+sample_size] = data[brick_i].data['Name'][select_points]
+                s_data[current_length:current_length+sample_size] = selected_data[size_column_name]
+            text[current_length:current_length+sample_size] = selected_data[settings['name_column']]
             print("assign {}:  {}".format(brick_i, dt.now()-t1))
             current_length += sample_size
             t1 = dt.now()
@@ -539,8 +802,8 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         x_data = np.array([])
         y_data = np.array([])
         c_data = np.array([])
-        text = np.array([''])
-        title = ''
+        text   = np.array([''])
+        title  = ''
         
 
     # Format for sending  
@@ -584,5 +847,7 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
 
 
 
+app.scripts.config.serve_locally = True
+
 if __name__ == '__main__':
-    app.run_server(debug=True, host=settings['host'], port=settings['port'])# host='129.206.102.157')
+    app.run_server(debug=settings['debug'], host=settings['host'], port=settings['port'])# host='129.206.102.157')
