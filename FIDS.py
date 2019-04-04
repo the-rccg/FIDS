@@ -7,6 +7,7 @@ Quickly sketch and explore data tables and relations sae in FITS format
 """
 import numpy as np
 import json
+from pprint import pprint
 
 # Load Settings
 settings = json.load(open('settings.json'))
@@ -73,7 +74,8 @@ def getSampleIndices(sample_size, total_size):
 
 
 # Reduce Columns to Useful
-selected_columns = column_names #[name for name in column_names if name.split('_')[-1] not in ['p50', 'p84', 'p16', 'Exp']]
+selected_columns = column_names
+selected_columns.remove('Name') #[name for name in column_names if name.split('_')[-1] not in ['p50', 'p84', 'p16', 'Exp']]
 #print("Selected Columns: {}".format(selected_columns))
 
 
@@ -87,9 +89,14 @@ import plotly.graph_objs as go
 ##################################################################################
 #   Allow range slicing
 ##################################################################################
+from setup_dataset import parse_datatype
 # Add column criteria selection
-slice_col_list = column_names[0:3]
-print("Slice Col List: ", slice_col_list)
+brick_data_types = dict(data[filename_list[0]].data.dtype.descr)
+#pprint(brick_data_types)
+allowed_types = ['>f8', '>i8']
+slice_col_list = [col_name for col_name in column_names if brick_data_types[col_name] in allowed_types][:17]
+#pprint([(col_name, brick_data_types[col_name]) for col_name in column_names if brick_data_types[col_name] in allowed_types][17:21])
+#print("Slice Col List: ", slice_col_list)
 
 from io_tools import load_json
 brick_column_details = load_json('brick_column_details.json', savepath=settings['savepath'])
@@ -99,19 +106,23 @@ filename_list = [filename for filename in filename_list if filename in brick_col
 
 column_details = {
     col_name: {
-        'min': np.min([brick_column_details[brick_name][col_name]['min'] for brick_name in filename_list]),
-        'max': np.max([brick_column_details[brick_name][col_name]['max'] for brick_name in filename_list]),
+        'min': parse_datatype(np.min([brick_column_details[brick_name][col_name]['min'] for brick_name in filename_list])),
+        'max': parse_datatype(np.max([brick_column_details[brick_name][col_name]['max'] for brick_name in filename_list])),
     }
     for col_name in slice_col_list
 }
 slice_col_list = [col for col in slice_col_list if col in column_details.keys()]
+print("Reduced Slice Col List: ", slice_col_list)
 
 from slider_magic import get_range_slider, get_log_range_slider
 from pprint import pprint
-slice_style = {#'height':34, 
-               #'width':'97%', 
-               #'margin':'auto auto',
-               'margin': '0px 15px 0px 15px'}
+
+slider_style = {
+    #'height':34, 
+    #'width':'97%', 
+    #'margin':'auto auto',
+    'padding': '0px 18px 0px 18px'
+}
 slice_list = [
     html.Div(
         id = '{}_div'.format(column_name), 
@@ -133,7 +144,7 @@ slice_list = [
                 granularity=settings['selection_granularity']
             )
         ],
-        style={**slice_style,
+        style={**slider_style,
                'display': None
         }
     )
@@ -201,11 +212,7 @@ html.Div([
                 }
             )
         ],
-        style={'height':34, 
-               #'width':'97%', 
-               'margin':'auto auto',
-               'padding': '0px 15px 3px 15px'
-               }
+        style={**slider_style, 'height':'34px'}
         #html.Div(id="selection-container")
     ),
 
@@ -352,8 +359,8 @@ html.Div([
                 id='column_slicer',
                 placeholder='Select fields to slice on...',
                 options=[
-                    {'label': '{}'.format(i), 'value': i} 
-                        for i in slice_col_list
+                    {'label': '{}'.format(col_name), 'value': col_name} 
+                        for col_name in slice_col_list
                 ],
                 value=None,
                 multi=True
@@ -515,15 +522,16 @@ output_list = [
         )
 def hide_unhide(criteria_show_list):
     # Hide all
+    print("hide_unhide()")
     show_dict = {
-        '{}_div'.format(column_name):{**slice_style, 'display': 'none'} 
+        '{}_div'.format(column_name):{**slider_style, 'display': 'none'} 
         for column_name in slice_col_list
     }
     # Show selected
     if criteria_show_list:
         for col_show in criteria_show_list:
-            show_dict['{}_div'.format(col_show)] = {**slice_style, 'display': 'block'}
-        print(show_dict)
+            show_dict['{}_div'.format(col_show)] = {**slider_style, 'display': 'block'}
+        #print(show_dict)
     return list(show_dict.values())
 
 
@@ -575,9 +583,13 @@ def get_data(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_d
             for axis_name in axis_name_list
         }
     current_length = 0
+    slice_count = 0
     while not sufficient_data:
         # Slicing 
         if criteria_dict:
+            # TODO: Better handling for this
+            if slice_count > settings['max_fill_attempts']:
+                sufficient_data = True
             # Oversample by 1/brick_use.
             select_points = getSampleIndices(int(round(sample_size/brick_use)), brick_size)
             new_data = slice_data(
@@ -589,6 +601,7 @@ def get_data(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_d
             for axis_name in axis_name_list:
                 selected_data[axis_name][current_length:current_length+data_size] = new_data[axis_name][0:data_size]
             current_length += data_size
+            slice_count += 1
             # Check for sufficienct
             if current_length >= sample_size:
                 sufficient_data = True
@@ -607,6 +620,7 @@ from data_selector import get_limits, reduce_cols, slice_data, get_brick_usage
 #   make slicers dynamic
 ##################################################################################
 from slider_magic import get_marks
+
 @app.callback(
     [
         dash.dependencies.Output('{}'.format(col_name), 'min') 
@@ -626,12 +640,12 @@ def update_slice_limits(bricks_selected):
     if bricks_selected:
         mins = [
             # Min
-            np.min([brick_column_details[brick_name][col_name]['min'] for brick_name in bricks_selected])
+            parse_datatype(np.min([brick_column_details[brick_name][col_name]['min'] for brick_name in bricks_selected]))
             for col_name in slice_col_list
         ] 
         maxs = [
             # Max
-            np.max([brick_column_details[brick_name][col_name]['max'] for brick_name in bricks_selected])
+            parse_datatype(np.max([brick_column_details[brick_name][col_name]['max'] for brick_name in bricks_selected]))
             for col_name in slice_col_list
         ]
         # Marks
@@ -640,15 +654,14 @@ def update_slice_limits(bricks_selected):
             for idx in range(len(mins))
         ]
         reduced_limits = mins + maxs + marks
-        print('red two: ', reduced_limits)
     else:
         reduced_limits = [
             # Min
-            column_details[col_name]['min'] 
+            parse_datatype(column_details[col_name]['min'])
             for col_name in slice_col_list
         ] + [
             # Max
-            column_details[col_name]['max']
+            parse_datatype(column_details[col_name]['max'])
             for col_name in slice_col_list
         ]        
         # Marks
@@ -661,7 +674,8 @@ def update_slice_limits(bricks_selected):
             )
             for idx in range(int(len(reduced_limits)/2))
         ]
-    print("finished update_slice_limits")
+    print('slice_limits: ')
+    pprint(reduced_limits)
     return reduced_limits
 
 

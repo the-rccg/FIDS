@@ -63,10 +63,10 @@ def get_range_slider(column_name, id_given, col_range, marks=None, granularity=1
 
 def get_marks(col_range, certainty=2):
     ''' get proper formatting for marks '''
-    sig_digits = int(max(round(abs(np.log10(1-col_range[0]/col_range[1])))+certainty,certainty))
+    sig_digits = get_sig_digits(col_range, certainty)
     sig_digit_formatter = "{}".format(sig_digits)
     marks = {
-        val:str(("{:."+sig_digit_formatter+"g}").format(val))
+        parse_datatype(val):str(("{:."+sig_digit_formatter+"g}").format(val))
         for val in col_range
     }
     # TODO: Fix showing of zero label. Maybe value it differently form zero??
@@ -78,13 +78,19 @@ def get_marks(col_range, certainty=2):
     return marks
 
 def get_sig_digits(col_range, certainty):
-    print(col_range)
-    sig_digit = np.max(abs(np.log10(1-col_range[0]/col_range[1])),0)
-    print(sig_digit)
-    sig_digit = round(sig_digit)+certainty
-    print(sig_digit)
-    sig_digit = int(sig_digit)
-    print(sig_digit)
-    sig_digit = max(certainty, sig_digit)
-    
+    sig_digit = round(abs(np.log10(1-col_range[0]/col_range[1])))+certainty
+    if not np.isfinite(sig_digit):
+        print(col_range)
+        sig_digit=0
+    sig_digit = int(max(sig_digit, certainty))
     return sig_digit
+
+def parse_datatype(value):
+    if type(value) in [np.int64, np.int32]:
+        return int(value)
+    elif type(value) in [np.float64, np.float32]:
+        return float(value)
+    elif type(value) in [np.bool_]:
+        return bool(value)
+    else:
+        return value

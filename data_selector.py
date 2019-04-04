@@ -15,7 +15,7 @@ def get_limits(bricks_selected, limit_dict, brick_column_details):
             ]
             for col_name in limit_dict.keys()
         }
-        print('brick_limits: ', brick_limits)
+        #print('brick_limits: ', brick_limits)
         lim_dict = {
             col_name:[
                 max(limit_dict[col_name][0], brick_limits[col_name][0]),
@@ -25,7 +25,7 @@ def get_limits(bricks_selected, limit_dict, brick_column_details):
             if (limit_dict[col_name][0] > brick_limits[col_name][0]) \
                 or (limit_dict[col_name][1] < brick_limits[col_name][1])
         }
-        print('lim_dict: ', lim_dict)
+        #print('lim_dict: ', lim_dict)
     else:
         lim_dict = {}
     return lim_dict
@@ -72,7 +72,7 @@ def reduce_cols(data, axis_name_list):
 
 def slice_data(data, axis_name_list, criteria_dict):
     ''' given criteria {'column_name':(min, max)}, return sliced '''
-    print("slicing...")
+    #print("slicing...")
     t0 = dt.now()
     # TODO: Individual slicing for more efficient computation
     print(criteria_dict.items())
@@ -80,7 +80,7 @@ def slice_data(data, axis_name_list, criteria_dict):
         [np.all([data[col_name] > limits[0], data[col_name] < limits[1]], 0)
             for col_name, limits in criteria_dict.items()],
         0)
-    print(len(selection), np.sum(selection))
-    print("{}".format(dt.now()-t0))
+    #print(len(selection), np.sum(selection))
+    #print("{}".format(dt.now()-t0))
     return data[selection]#reduce_cols(data[selection], axis_name_list)
 ##################################################################################
