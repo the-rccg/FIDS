@@ -89,7 +89,7 @@ import plotly.graph_objs as go
 ##################################################################################
 #   Allow range slicing
 ##################################################################################
-from setup_dataset import parse_datatype
+from io_tools import parse_datatype
 # Add column criteria selection
 brick_data_types = dict(data[filename_list[0]].data.dtype.descr)
 #pprint(brick_data_types)
@@ -120,8 +120,9 @@ from pprint import pprint
 slider_style = {
     #'height':34, 
     #'width':'97%', 
-    #'margin':'auto auto',
-    'padding': '0px 18px 0px 18px'
+    #'margin':'0px 0px 0px 0px',  # above right below left
+    'padding': '0px 20px 0px 20px',
+    'width': 'inherit'
 }
 slice_list = [
     html.Div(
@@ -575,7 +576,7 @@ def get_data(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_d
     print("Getting {} points".format(sample_size))
     print(axis_name_list)
     sufficient_data = False
-    brick_data_types = dict(brick_data.data.dtype.descr)
+    #brick_data_types = dict(brick_data.data.dtype.descr)
     selected_data = {}
     if criteria_dict:
         selected_data = {
@@ -694,6 +695,13 @@ def scale_max(arr):
     arr[np.isinf(arr)] = 0
     return arr/np.max(arr)
 
+# Define Marker properties
+marker_properties = {
+    'size': settings['marker_size'],
+    'opacity': settings['marker_opacity'],
+    'line': {'width': 0.5, 'color': 'white'}
+}
+
 update_graph_inputs = [
         dash.dependencies.Input('xaxis-column', 'value'),
         dash.dependencies.Input('yaxis-column', 'value'),
@@ -733,18 +741,13 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
     # Brick selection
     print("Brick {} selected".format(bricks_selected))
 
-    # Define Marker properties
-    marker_properties = {
-        'size': settings['marker_size'],
-        'opacity': settings['marker_opacity'],
-        'line': {'width': 0.5, 'color': 'white'}
-    }
+
 
     # Special Functions on columns
     # 1. Herzsprung Russel columns
     # absolut magnitude / luminosity
     # stellar classification / effective temperatures
-    custom_functions =  {}
+    #custom_functions =  {}
 
     # Fill new data
     t0 = dt.now()

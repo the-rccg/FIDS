@@ -61,14 +61,16 @@ def get_range_slider(column_name, id_given, col_range, marks=None, granularity=1
     title = html.Div('{}'.format(column_name), style={'margin': '0   0 -5px 10px'})
     return html.Div([title, html.Div(slider, style = {'margin': '0px 0  15px 0'})])
 
-def get_marks(col_range, certainty=2):
+def get_marks(col_range, certainty=2, include_zero=False):
     ''' get proper formatting for marks '''
     sig_digits = get_sig_digits(col_range, certainty)
     sig_digit_formatter = "{}".format(sig_digits)
     marks = {
-        parse_datatype(val):str(("{:."+sig_digit_formatter+"g}").format(val))
+        parse_datatype(val):str(("{:#."+sig_digit_formatter+"g}").format(val))
         for val in col_range
     }
+    if include_zero and col_range[0] < 0 and col_range[1] > 0:
+        marks[0] = '0.0'
     # TODO: Fix showing of zero label. Maybe value it differently form zero??
     #if col_range[0] == 0:
     #    marks[0] = '0.00'
@@ -78,7 +80,7 @@ def get_marks(col_range, certainty=2):
     return marks
 
 def get_sig_digits(col_range, certainty):
-    sig_digit = round(abs(np.log10(1-col_range[0]/col_range[1])))+certainty
+    sig_digit = round(abs(np.log10(1-np.min(np.abs(col_range))/np.max(np.abs(col_range)))))+certainty
     if not np.isfinite(sig_digit):
         print(col_range)
         sig_digit=0
