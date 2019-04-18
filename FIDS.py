@@ -375,11 +375,25 @@ html.Div([
     
     # Graph 1: Scatter Plot
     html.Div(
+        dcc.Loading(
             dcc.Graph(
                 id='indicator-graphic',
                 #style={'responsive':'true'},
-                #config={'responsive':True}
+                config={
+                    #'responsive':True,  # Whether layout size changes with window size
+                    #'showLink':True,  # Link bottom right to plotly chartstudio
+                    #'sendData':True,  # Send Data to plotly chartstudio
+                    #'editable':True,  # Allow editing of title, axis name, etc.
+                    'modeBarButtonsToRemove':['watermark', 'displaylogo'],
+                    'displaylogo':False,  # Display plotly logo?
+                    'showTips':True,
+                    'toImageButtonOptions':{
+                        'format':'svg',
+                        'filename':'image_FIDS'
+                    }
+                }
             ),
+
             style={
                     #'border': 'solid 1px #A2B1C6', 
                     #'border-radius': '0px', 
@@ -390,6 +404,7 @@ html.Div([
                     #'overflow': 'auto'
                     #'margin-top': '20px'
             }
+        )
     ),
 
     # Element 8: Download Selection
@@ -539,6 +554,9 @@ def hide_unhide(criteria_show_list):
 ##################################################################################
 #   Getting Data
 ##################################################################################
+#def get_all_data(brick_data, axis_name_list, criteria_dict={}) 
+#    return get_data(brick_data, axis_name_list, sample_size=data_counts[brick_name])
+
 def get_data(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_dict={}, brick_use=1):
     """ 
         TODO: 
@@ -688,7 +706,8 @@ def get_axis_properties(axis_column_name, axis_type, axis_orientation):
     return {
         'title': axis_column_name,
         'type': 'linear' if axis_type == 'Linear' else 'log',
-        'autorange': 'reversed' if axis_orientation == 'reversed' else True
+        'autorange': 'reversed' if axis_orientation == 'reversed' else True,
+        'automargin': True
     }
 
 def scale_max(arr):
@@ -740,8 +759,6 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
 
     # Brick selection
     print("Brick {} selected".format(bricks_selected))
-
-
 
     # Special Functions on columns
     # 1. Herzsprung Russel columns
@@ -846,18 +863,31 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
     if has_bricks:
         title += '<br><i>('+', '.join(sorted(bricks_selected))+')</i>'
 
-    return {'data': [
-        go.Scatter(
+    if display_count > settings["display_count_webgl_min"]:
+        print("using go.Scattergl")
+        plot_fig = go.Scattergl(
             **data_dic,
             text = text,
             mode = 'markers',
             marker = marker_properties
-        )],
+        )
+    else:
+        plot_fig = go.Scatter(
+            **data_dic,
+            text = text,
+            mode = 'markers',
+            marker = marker_properties
+        )
+
+    return {'data': [
+            plot_fig
+        ],
         'layout': go.Layout(
             title=title,
             xaxis=get_axis_properties(xaxis_column_name, xaxis_type, xaxis_orientation),
             yaxis=get_axis_properties(yaxis_column_name, yaxis_type, yaxis_orientation),
-            margin={'l': 40, 'b': 40, 't': 70, 'r': 0},
+            autosize=True,
+            margin={'l': 40, 'b': 60, 't': 80, 'r': 0},
             hovermode='closest'
         )
     }
