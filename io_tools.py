@@ -1,5 +1,8 @@
+from memory_profiler import profile
+
 import json
 import os
+
 def load_json(filename, savepath='/'):
     """ check if it exists, if so, load it """
     if filename in os.listdir(savepath):
@@ -7,6 +10,7 @@ def load_json(filename, savepath='/'):
     else:
         print("{} not in directory".format(filename))
         return {}
+
 def save_json(dictionary, filename, savepath='/'):
     with open(savepath+filename,'w') as f:
         json.dump(dictionary, f, sort_keys=True, indent=4)
