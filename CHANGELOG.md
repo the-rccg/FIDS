@@ -1,5 +1,13 @@
 # FIDS Changelog
 
+## Dash V0.2.0
+
+### 2019-04-26
+
+- implemented get_all_data on Zero selected sample size
+- implemented faster type reading (removed implicit read of entire array)
+- added debug elements (shutdown button with requiring confirmation)
+- moved loads to functions for easier profiling
 
 ### 2019-04-19
 
