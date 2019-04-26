@@ -1,6 +1,8 @@
 import numpy as np
 from datetime import datetime as dt
+import time
 
+from memory_profiler import profile
 
 ##################################################################################
 #   Slicing Data
@@ -33,7 +35,7 @@ def get_limits(bricks_selected, limit_dict, brick_column_details):
 def get_brick_usage(bricks_selected, limit_dict, brick_column_details):
     ''' returns dict with brick name and fraction of brick used '''
     if limit_dict:
-        bricks_used = {}
+        brick_usage = {}
         for brick in bricks_selected:
             brick_col_usage = []
             for col_name in limit_dict.keys():
@@ -51,10 +53,20 @@ def get_brick_usage(bricks_selected, limit_dict, brick_column_details):
                 brick_col_usage.append(
                     intersection_size/brick_interval_size
                 )     
-            bricks_used[brick] = np.product(brick_col_usage)           
+            brick_usage[brick] = np.product(brick_col_usage)           
     else:
-        bricks_used = {brick:1 for brick in bricks_selected}
-    return bricks_used
+        brick_usage = {brick:1 for brick in bricks_selected}
+    return brick_usage
+
+def get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, min_usage):
+    # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
+    brick_usage = get_brick_usage(bricks_selected, criteria_dict, brick_column_details)
+    print(brick_usage)
+    bricks_selected = [
+        brick for brick in bricks_selected 
+        if brick_usage[brick] > min_usage
+    ]
+    return bricks_selected
 
 def reduce_cols(data, axis_name_list):
     ''' slice by axis name list '''
@@ -70,17 +82,63 @@ def reduce_cols(data, axis_name_list):
     #    selection[:,i] = data[axis_name]
     return selection
 
-def slice_data(data, axis_name_list, criteria_dict):
+def get_within_limits(data, col_name, limits):
+    return np.logical_and(
+        data.data[col_name] > limits[0], 
+        data.data[col_name] < limits[1]
+    )
+
+def slice_data(data, axis_name_list, criteria_dict, list_comp=True):
+    ''' given data array, slice it and return 
+    criteria {'column_name':(min, max)}, return sliced '''
+    data = data.data
+    # Bulk slicing
+    if list_comp:
+        t1 = time.time()
+        selection = np.all(
+            [get_within_limits(data, col_name, limits)
+                for col_name, limits in criteria_dict.items()],
+            0)
+        t2 = time.time()
+        print("list comprehension: {:.2f}s".format(t2-t1))
+    # Individual slicing for more efficient computation
+    else:
+        t1 = time.time()
+        selection = np.array([])#np.ones(data.data.shape[0], dtype=bool)
+        for col_name, limits in criteria_dict.items():
+            if selection.shape[0] < 2:
+                selection = get_within_limits(data, col_name, limits)
+            else:
+                np.logical_and(selection, get_within_limits(data, col_name, limits), out=selection)
+        t2 = time.time()
+        print("cycle {:.2f}s".format(t2-t1))
+    return data[selection]
+##################################################################################
+# No longer used...
+
+def get_slice_idx(data, axis_name_list, criteria_dict):
     ''' given criteria {'column_name':(min, max)}, return sliced '''
-    #print("slicing...")
-    t0 = dt.now()
-    # TODO: Individual slicing for more efficient computation
-    print(criteria_dict.items())
+    # Bulk slicing
+    #print(criteria_dict.items())
+    #t1 = time.time()
     selection = np.all(
-        [np.all([data[col_name] > limits[0], data[col_name] < limits[1]], 0)
+        [get_within_limits(data, col_name, limits)
             for col_name, limits in criteria_dict.items()],
         0)
-    #print(len(selection), np.sum(selection))
-    #print("{}".format(dt.now()-t0))
-    return data[selection]#reduce_cols(data[selection], axis_name_list)
-##################################################################################
+    #t2 = time.time()
+    #print("list comprehension: {:.2f}s".format(t2-t1))
+    return selection
+
+def get_slice_idx2(data, axis_name_list, criteria_dict):
+    ''' given criteria {'column_name':(min, max)}, return sliced '''
+    # Individual slicing for more efficient computation
+    #t1 = time.time()
+    selection = np.array([])#np.ones(data.data.shape[0], dtype=bool)
+    for col_name, limits in criteria_dict.items():
+        if selection.shape[0] < 2:
+            selection = get_within_limits(data, col_name, limits)
+        else:
+            np.logical_and(selection, get_within_limits(data, col_name, limits), out=selection)
+    #t2 = time.time()
+    #print("cycle {:.2f}s".format(t2-t1))
+    return selection
