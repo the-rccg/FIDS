@@ -95,3 +95,27 @@ To see data appear in the plot the following parameters have to be given:
 - Y-Axis Column
 
 Additional variables may be defined for the color-axis and size-axis, as well as slicing on each of the columns present in the dataset is enabled when selecting them in the dropdown.
+
+## Motivation
+
+The use of commercial databases and cloud infrastrucure for analysis of astronomical daa has been investigated in the recent years to great progress [(Williams et al)](https://iopscience.iop.org/article/10.3847/1538-4365/aab762/pdf), however, there has been little progress in implementing cloud based visualization in combination with the cloud based computing. This means that the new technologies are not used to ttheir full poential in astronomy yet and marks the point where this project aims to make significant progress.
+
+## Current Features
+
+- [x] Load FITS files via memory maps
+- [x] Read out columns for plotting and slicing
+- [x] Adjust limits based on selected files
+- [x] Interactively visualize subset of quaifying points
+- [x] Allow downloading: individual files, current selection
+
+## Upcoming Features
+
+- [ ] Distribute slicing workload using Dask
+- [ ] Allow downloading all points that foal under criteria
+- [ ] Download all displayed points (if none selected)
+- [ ] Mouse-over explanation
+- [ ] How-to Documentation
+
+## Long Term Plans
+
+- [ ]  Extend data sources from simple FITS files to online catalogues of astronomical surveys using the openly available SQL interface for gathering daa.
