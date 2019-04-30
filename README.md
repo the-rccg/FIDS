@@ -5,6 +5,8 @@ An interface for loading FITS Table data and displaying them in a Plotly.Dash da
 
 Makes use of memory buffering of FITS files through AstroPy, subsampling of data to fit into memory through NumPy, and visualization using Flask and React through Dash
 
+[![astropy](http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat)](http://www.astropy.org/)
+
 ## Setup
 ### Installing Astropy
 ```cmd
