@@ -68,14 +68,24 @@ def get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, mi
     ]
     return bricks_selected
 
-def reduce_cols(data, axis_name_list):
+def reduce_cols(data, axis_name_list, selection=0):
     ''' slice by axis name list '''
     # TODO: testing other implementation
+    t1 = time.time()
+    if type(selection) != int:
+        selection = {
+            axis_name:data[axis_name][selection]
+            for axis_name in axis_name_list
+        }
+    else:
+        selection = {
+            axis_name:data[axis_name]
+            for axis_name in axis_name_list
+        }
+    t2 = time.time()
+    print("reduce: {:.2f}s".format(t2-t1))
+    # Test:  Requires ColumnDef, and does implicit copy too just into a rec_array
     #     data.from_columns(axis_name_list, nrows=len(data))
-    selection = {
-        axis_name:data[axis_name]
-        for axis_name in axis_name_list
-    }
     # Test:  ValueError: could not convert string to float: 'PHAT J....' (since np.empty has 1 type rather than multiple)
     #selection = np.empty((len(data), len(axis_name_list)))
     #for i, axis_name in enumerate(axis_name_list):
@@ -84,14 +94,16 @@ def reduce_cols(data, axis_name_list):
 
 def get_within_limits(data, col_name, limits):
     return np.logical_and(
-        data.data[col_name] > limits[0], 
-        data.data[col_name] < limits[1]
+        data[col_name] > limits[0], 
+        data[col_name] < limits[1]
     )
 
 def slice_data(data, axis_name_list, criteria_dict, list_comp=True):
     ''' given data array, slice it and return 
     criteria {'column_name':(min, max)}, return sliced '''
+    t1 = time.time()
     data = data.data
+    print("accessing time: {:.2f}s".format(time.time()-t1))
     # Bulk slicing
     if list_comp:
         t1 = time.time()
@@ -112,7 +124,7 @@ def slice_data(data, axis_name_list, criteria_dict, list_comp=True):
                 np.logical_and(selection, get_within_limits(data, col_name, limits), out=selection)
         t2 = time.time()
         print("cycle {:.2f}s".format(t2-t1))
-    return data[selection]
+    return reduce_cols(data, axis_name_list, selection)
 ##################################################################################
 # No longer used...
 

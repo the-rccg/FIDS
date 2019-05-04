@@ -478,12 +478,39 @@ app.layout = html.Div([
         'padding': '5px', 
         #'margin-top': '20px', 
         'flex': '1 0 auto'}),
+
     # Element 10: Footer with links
     html.Div(
         [
             html.H6(
-                'FIDS - Flexible Imaging and Display System, provided by Ruprecht-Karls Universitaet Heidelberg',
-                style={'font-size':'14px', 'padding':'5px'}
+                [
+                    html.A(
+                        'FIDS: Flexible Imaging and Display System, ',
+                        id='repository_link',
+                        href='https://www.github.com/the-rccg/FIDS',
+                        target='_blank',
+                        style={
+                            'color': '#444',#rgb(116, 101, 130)',
+                            'text-decoration': 'none',
+                            'letter-spacing': '0.03em'
+                        }
+                    ),
+                    html.A(
+                        'provided by Ruprecht-Karls Universitaet Heidelberg',
+                        id='university_link',
+                        href='https://www.uni-heidelberg.de/',
+                        target='_blank',
+                        style={
+                            'color': '#555',#'rgb(116, 101, 130)',
+                            'text-decoration': 'none',
+                            'letter-spacing': '0.03em'
+                        }
+                    )
+                ],
+                style={
+                    'font-size':'14px', 
+                    'padding':'5px'
+                }
             )
         ], 
         className='footer', 
@@ -496,7 +523,6 @@ app.layout = html.Div([
 # Debug Elements
 ##################################################################################
 from flask import request
-
 
 @app.callback(
     dash.dependencies.Output('debug-status', 'children'),
@@ -634,6 +660,7 @@ def get_all_data(bricks_selected, display_count,
     s_data = np.array([])  # Sizevbn
     text   = np.array([])  # Text
     current_length = 0
+    
     # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
     bricks_selected = get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, min_usage=0)
     for brick_name in bricks_selected:
@@ -650,6 +677,7 @@ def get_all_data(bricks_selected, display_count,
         time_slice = dt.now()
         print("slice data: {}".format(time_slice-t1))
 
+        # NOTE: Creates copies. Length unknown, hence no better option. 
         t1 = dt.now()
         x_data = np.append(x_data, selected_data[xaxis_column_name])
         y_data = np.append(y_data, selected_data[yaxis_column_name])
@@ -665,6 +693,8 @@ def get_all_data(bricks_selected, display_count,
         current_length += sample_size
     print("{} data points".format(current_length))
     return x_data, y_data, c_data, s_data, text
+
+#def get_selected_data()
 
 def get_sample_data(bricks_selected, display_count, 
                     xaxis_column_name, yaxis_column_name, color_column_name, size_column_name, 
@@ -703,7 +733,7 @@ def get_sample_data(bricks_selected, display_count,
         axis_name_list = [settings['name_column'], xaxis_column_name, yaxis_column_name]
         if has_caxis:  axis_name_list.append(color_column_name)
         if has_saxis:  axis_name_list.append(size_column_name)
-        selected_data = get_data(
+        selected_data = get_subsetdata(
                 data[brick_i],  # do NOT add ".data" as it will create a copy 
                 axis_name_list, 
                 sample_size=sample_size, 
@@ -723,8 +753,10 @@ def get_sample_data(bricks_selected, display_count,
         t1 = dt.now()
     return x_data, y_data, c_data, s_data, text
 
-def get_data(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_dict={}, brick_use=1):
+def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_dict={}, brick_use=1):
     """ 
+        Returns exact axis subset
+
         TODO: 
             Speed comparisons
             Implement Dask
@@ -737,7 +769,7 @@ def get_data(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_d
             NumPy Record - https://docs.scipy.org/doc/numpy/reference/generated/numpy.record.html 
 
         FITS rec can be accessed with 
-            FITS_rec[col_name][point_idx_list]
+            FITS_rec[col_name][point_idx_list]  ! Much faster !
             FITS_rec[point_idx_list][col_name]
 
         but NOT with
@@ -760,7 +792,6 @@ def get_data(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_d
     print("Getting {} points".format(sample_size))
     print(axis_name_list)
     sufficient_data = False
-    #brick_data_types = dict(brick_data.data.dtype.descr)
     selected_data = {}
     if criteria_dict:
         selected_data = {
@@ -775,7 +806,7 @@ def get_data(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_d
             # TODO: Better handling for this
             if slice_count > settings['max_fill_attempts']:
                 sufficient_data = True
-            # Oversample by 1/brick_use.
+            # Oversample by 1/brick_use.  e.g. 5% brick_use: (1/0.05 = 20)*sample_size
             select_points = getSampleIndices(int(round(sample_size/brick_use)), brick_size)
             new_data = slice_data(
                 brick_data.data[select_points],
@@ -819,7 +850,7 @@ from slider_magic import get_marks
 )
 def update_slice_limits(bricks_selected):
     '''  '''
-    print("update_slice_limits")
+    #print("update_slice_limits")
     if bricks_selected:
         mins = [
             # Min
@@ -857,7 +888,7 @@ def update_slice_limits(bricks_selected):
             )
             for idx in range(int(len(reduced_limits)/2))
         ]
-    print('slice_limits: ', reduced_limits)
+    #print('slice_limits: ', reduced_limits)
     return reduced_limits
 
 
@@ -961,7 +992,8 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         c_data = np.array([])
         text   = np.array([''])
         title  = ''
-        
+    t1 = dt.now()
+    print("getting data: {}".format(t1-t0))
 
     # Format for sending  
     data_dic = {
@@ -983,8 +1015,26 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         # Set Size
         marker_properties['size'] = scale_max(s_data)*20
     # Finish Title
+    annotations = []
     if has_bricks:
-        title += '<br><i>('+', '.join(sorted(bricks_selected))+')</i>'
+        # Below title
+        title = title + '<br><i>('+', '.join(sorted(bricks_selected))+')<i>'
+        # Subtitle Variant with Annotation (NOTE: Not alinabl with title)
+        #annotations.append({
+        #    'text': '<i>('+', '.join(sorted(bricks_selected))+')</i>',
+        #    'font': {
+        #        'size': 10,
+        #        'color': 'rgb(116, 101, 130)',
+        #    },
+        #    'showarrow': False,
+        #    'align': 'center',
+        #    'x': 0.5,
+        #    'y': 1,
+        #    'xref': 'paper',
+        #    'yref': 'paper',
+        #    'xanchor': 'center',
+        #    'yanchor': 'bottom'
+        #})
 
     if data_dic['x'].shape[0] > settings["display_count_webgl_min"]:
         print("using go.Scattergl")
@@ -1001,12 +1051,13 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
             mode = 'markers',
             marker = marker_properties
         )
-
+    print("entire call: {}".format(dt.now()-t0))
     return {'data': [
             plot_fig
         ],
         'layout': go.Layout(
             title=title,
+            annotations=annotations,
             xaxis=get_axis_properties(xaxis_column_name, xaxis_type, xaxis_orientation),
             yaxis=get_axis_properties(yaxis_column_name, yaxis_type, yaxis_orientation),
             autosize=True,
