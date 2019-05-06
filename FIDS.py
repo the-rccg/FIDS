@@ -977,6 +977,7 @@ def get_sample_data(bricks_selected, display_count,
             c_data[current_length:current_length+sample_size] = selected_data[color_column_name]
         if has_saxis:  
             s_data[current_length:current_length+sample_size] = selected_data[size_column_name]
+        print(selected_data[settings['name_column']].shape)
         text[current_length:current_length+sample_size] = selected_data[settings['name_column']]
         print("assign {}:  {}".format(brick_i, dt.now()-t1))
         current_length += sample_size
@@ -1225,10 +1226,12 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         # Update Title
         title += ' colored by {}'.format(color_column_name)
         # Set Color
-        marker_properties['color'] = c_data  
+        marker_properties['color'] = c_data
         marker_properties['colorscale'] = settings['color_scale']  # 'Greys', 'YlGnBu', 'Greens', 'YlOrRd', 'Bluered', 'RdBu', 'Reds', 'Blues', 'Picnic', 'Rainbow', 'Portland', 'Jet', 'Hot', 'Blackbody', 'Earth', 'Electric', 'Viridis', 'Cividis'
         marker_properties['showscale'] = True
         marker_properties['colorbar'] = {'title':color_column_name}
+    else:
+        marker_properties['color'] = 1  # Recolor after color axis removed
     if has_saxis:
         # Update Title
         title += ' sized by {}'.format(size_column_name)
