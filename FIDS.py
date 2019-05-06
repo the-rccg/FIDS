@@ -909,6 +909,7 @@ def get_all_data(bricks_selected, display_count,
 
         # NOTE: Creates copies. Length unknown, hence no better option. 
         t1 = dt.now()
+        # TODO: Test memory and CPU for np.append vs np.concat
         x_data = np.append(x_data, selected_data[xaxis_column_name])
         y_data = np.append(y_data, selected_data[yaxis_column_name])
         if has_caxis:  
@@ -938,7 +939,10 @@ def get_sample_data(bricks_selected, display_count,
     else:          c_data = np.array([])
     if has_saxis:  s_data = np.empty(display_count)  # Size
     else:          s_data = np.array([])
-    text = np.empty(display_count, dtype=str)  # Description
+    # TODO: Read Itemsize from column definition in FITS file
+    # TODO: Allow non-char description
+    #text = np.chararray(display_count, itemsize=25)  # Description
+    text = np.empty(display_count, dtype='U{}'.format(100))  # Description
     t1 = dt.now()
     # Create new random sample
     print("resampling with {} points".format(display_count))
@@ -957,7 +961,7 @@ def get_sample_data(bricks_selected, display_count,
         # Fix uneven split by rounding, then fill remainder: introduces a skew in data
         if ix == brick_count-1 and brick_count%2 == 1:
             sample_size = int(display_count-current_length)
-            print("adjustment done: {}".format(sample_size))
+            print("  adjustment done: {}".format(sample_size))
         #select_points = getSampleIndices(sample_size, data_counts[brick_i])
         #print("random:     {}".format(dt.now()-t1))
         axis_name_list = [settings['name_column'], xaxis_column_name, yaxis_column_name]
@@ -970,7 +974,7 @@ def get_sample_data(bricks_selected, display_count,
                 brick_size=data_counts[brick_i],
                 criteria_dict=criteria_dict,
                 brick_use=brick_usage[brick_i])
-        print("slice data: {}".format(dt.now()-t1))
+        print("  slice data: {}".format(dt.now()-t1))
         x_data[current_length:current_length+sample_size] = selected_data[xaxis_column_name]
         y_data[current_length:current_length+sample_size] = selected_data[yaxis_column_name]
         if has_caxis:  
@@ -979,7 +983,7 @@ def get_sample_data(bricks_selected, display_count,
             s_data[current_length:current_length+sample_size] = selected_data[size_column_name]
         print(selected_data[settings['name_column']].shape)
         text[current_length:current_length+sample_size] = selected_data[settings['name_column']]
-        print("assign {}:  {}".format(brick_i, dt.now()-t1))
+        print("  assign {}:  {}".format(brick_i, dt.now()-t1))
         current_length += sample_size
         t1 = dt.now()
     return x_data, y_data, c_data, s_data, text
@@ -1020,7 +1024,7 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
             FITS_rec[col_list, point_idx_list]
             FITS_rec[point_idx_list, col_list]
     """
-    print("Getting {} points".format(sample_size))
+    print("  Getting {} points".format(sample_size))
     print(axis_name_list)
     sufficient_data = False
     selected_data = {}
@@ -1044,7 +1048,7 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
                 criteria_dict,
                 axis_name_list)
             data_size = min(sample_size-current_length, min(sample_size, len(new_data[axis_name_list[0]])))
-            print("new slice: {}/{}".format(len(new_data), int(round(sample_size/brick_use))))
+            print("  new slice: {}/{}".format(len(new_data), int(round(sample_size/brick_use))))
             for axis_name in axis_name_list:
                 selected_data[axis_name][current_length:current_length+data_size] = new_data[axis_name][0:data_size]
             current_length += data_size
