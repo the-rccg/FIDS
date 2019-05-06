@@ -98,12 +98,13 @@ def get_within_limits(data, col_name, limits):
         data[col_name] < limits[1]
     )
 
-def slice_data(data, axis_name_list, criteria_dict, list_comp=True):
+def slice_data(data, criteria_dict, axis_name_list=[], list_comp=True):
     ''' given data array, slice it and return 
     criteria {'column_name':(min, max)}, return sliced '''
-    t1 = time.time()
-    data = data.data
-    print("accessing time: {:.2f}s".format(time.time()-t1))
+    # Pass in Data reference
+    #t1 = time.time()
+    #data = data.data
+    #print("accessing time: {:.2f}s".format(time.time()-t1))
     # Bulk slicing
     if list_comp:
         t1 = time.time()

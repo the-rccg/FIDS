@@ -105,13 +105,13 @@ The use of commercial databases and cloud infrastrucure for analysis of astronom
 - [x] Load FITS files via memory maps
 - [x] Read out columns for plotting and slicing
 - [x] Adjust limits based on selected files
-- [x] Interactively visualize subset of quaifying points
+- [x] Interactively visualize full or subset of qualifying points
 - [x] Allow downloading: individual files, current selection
 
 ## Upcoming Features
 
 - [ ] Distribute slicing workload using Dask
-- [ ] Allow downloading all points that foal under criteria
+- [ ] Allow downloading all points that fall under criteria
 - [ ] Download all displayed points (if none selected)
 - [ ] Mouse-over explanation
 - [ ] How-to Documentation

@@ -134,7 +134,7 @@ slider_style = {
     #'height':34, 
     #'width':'97%', 
     #'margin':'0px 0px 0px 0px',  # above right below left
-    'padding': '0px 20px 0px 20px',
+    'padding': '0px 20px 3px 20px', # above right below left
     'width': 'inherit'
 }
 slice_list = [
@@ -263,30 +263,32 @@ app.layout = html.Div([
                 # 4.1: Select X-Axis
                 html.Div(
                     [
-                        #html.H4('x-axis ', style={'display':'inline-block', 'width':60, 'margin': '0 auto', 'float':'left'}),
-                        #html.Div([
-                            dcc.Dropdown(
-                                id='xaxis-column',
-                                placeholder='Select X-Axis...',
-                                options=[
-                                    {'label': i, 'value': i} 
-                                        for i in selected_columns
-                                ],
-                                value=settings['default_x_column']
-                            ),
-                            #],
-                            #style={'display':'inline-block', 'margin':'auto auto', 'width':'100%'}),
-                        html.Div([
-                            dcc.RadioItems(
-                                id='xaxis-type',
-                                options=[
-                                    {'label': i, 'value': i} 
-                                        for i in ['Linear', 'Log']
-                                ],
-                                value='Linear',
-                                labelStyle={'display': 'inline-block'}
-                            )], style={'float': 'left', 'display': 'inline-block'}
+                        # X-Axis Column
+                        dcc.Dropdown(
+                            id='xaxis-column',
+                            placeholder='Select X-Axis...',
+                            options=[
+                                {'label': i, 'value': i} 
+                                    for i in selected_columns
+                            ],
+                            value=settings['default_x_column']
                         ),
+                        # X-Axis: Linear vs. Log
+                        html.Div(
+                            [
+                                dcc.RadioItems(
+                                    id='xaxis-type',
+                                    options=[
+                                        {'label': i, 'value': i} 
+                                            for i in ['Linear', 'Log']
+                                    ],
+                                    value='Linear',
+                                    labelStyle={'display': 'inline-block'}
+                                )
+                            ], 
+                            style={'float': 'left', 'display': 'inline-block'}
+                        ),
+                        # X-Axis: Increasing vs. Reversed
                         html.Div(
                             [
                                 dcc.RadioItems(
@@ -311,6 +313,7 @@ app.layout = html.Div([
                 # 4.2: Select Y-Axis
                 html.Div(
                     [
+                        # Y-Axis Column
                         dcc.Dropdown(
                             id='yaxis-column',
                             placeholder='Select Y-Axis...',
@@ -320,18 +323,23 @@ app.layout = html.Div([
                             ],
                             value=settings['default_y_column']
                         ),
-                        html.Div([
-                            #html.H6('Scale:', style={'font-size':'12px', 'display':'inline-block', 'width':'50px'}),
-                            dcc.RadioItems(
-                                id='yaxis-type',
-                                options=[
-                                    {'label': i, 'value': i} 
-                                        for i in ['Linear', 'Log']
-                                ],
-                                value='Linear',
-                                labelStyle={'display': 'inline-block'}
-                            )], style={'width': '49%', 'display': 'inline-block'}
+                        # Y-Axis: Linear vs. Log
+                        html.Div(
+                            [
+                                #html.H6('Scale:', style={'font-size':'12px', 'display':'inline-block', 'width':'50px'}),
+                                dcc.RadioItems(
+                                    id='yaxis-type',
+                                    options=[
+                                        {'label': i, 'value': i} 
+                                            for i in ['Linear', 'Log']
+                                    ],
+                                    value='Linear',
+                                    labelStyle={'display': 'inline-block'}
+                                )
+                            ], 
+                            style={'width': '49%', 'display': 'inline-block'}
                         ),
+                        # Y-Axis: Increasing vs. Reversed
                         html.Div(
                             [
                                 dcc.RadioItems(
@@ -436,40 +444,162 @@ app.layout = html.Div([
                         #'border': 'solid 1px #A2B1C6', 
                         #'border-radius': '0px', 
                         'padding': '3px', 
-                        #'width': '100%',
-                        #'height': '100%',
+                        'width': 'inherit',
+                        'height': 'inherit',
                         #'resize': 'vertical',
                         #'overflow': 'auto'
                         #'margin-top': '20px'
                 }
-            )
+            ),
+            style={'width':'inherit', 'height':'inherit'}
         ),
 
-        # Element 8: Download Selection
-        html.A(
-            html.Button(
-                    'Download *SELECTED* Data', 
-                    className='button-primary'),
-            id='download-selection',
-            #download="rawdata.fits",
-            href="",
-            target="_blank",
-            style={'padding': '3px 20px 3px 3px'}
-        ),
-
-        # Element 9: Download entire brick
-        html.A(
-            html.Button('Download *CURRENT BRICK*', 
-                        className='button-primary', type='button-primary'),
-            id='download-full-link',
-            download="rawdata.fits",
-            href="",
-            target="_blank",
-            style={'padding': '3px'}
-        ),
+        # Download Section
+        html.Details([
+            html.Summary(
+                'Download Data', 
+                style={'padding': '0px 0px 0px 5px'}
+            ),  
+            html.Div(
+                [
+                    # Element 8: Download Selection
+                    html.Div(
+                        [
+                            html.Div(
+                                'Download data selected on graph:',
+                                style={
+                                    'padding': '3px 0px 0px 3px',
+                                    'font-size': '16px',
+                                    'font-weight': 'bold'
+                                }
+                            ),
+                            html.A(
+                                html.Button(
+                                        'Download *SELECTED* Data', 
+                                        className='button-primary'),
+                                id='download-selection',
+                                download="selected_data.csv",
+                                href="",
+                                target="_blank",
+                                style={'padding': '3px'}
+                            ),
+                        ]
+                    ), 
+                    # Element 9: Download entire brick
+                    html.Div(
+                        [
+                            html.Div(
+                                'Download entire brick:',
+                                style={
+                                    'padding': '3px 20px 0px 3px',
+                                    'font-size': '16px',
+                                    'font-weight': 'bold'
+                                }
+                            ),
+                            html.Div([
+                                html.Div(
+                                    dcc.Dropdown(
+                                        id='download_file',
+                                        placeholder='Select file to download...',
+                                        options=[
+                                            {'label': '{}'.format(i), 'value': i} 
+                                            for i in filename_list
+                                        ],
+                                        value=None,
+                                        multi=False,
+                                    ),
+                                    style={'width': '49%', 'display': 'inline-block'}
+                                ),
+                                html.Div(
+                                    html.A(
+                                        html.Button('Download *ENTIRE FILE*', 
+                                                    className='button-primary', type='button-primary'),
+                                        id='download-full-link',
+                                        download="rawdata.fits",
+                                        href="",
+                                        target="_blank",
+                                        style={'padding': '3px'}
+                                    ),
+                                    style={'width': '49%', 'float': 'right', 'display': 'inline-block'}
+                                )
+                            ])
+                        ],
+                        style={
+                            'padding': '0px 5px 0px 0px',
+                            'margin-top': '5px'
+                        }
+                    ),
+                    # Element 10a: Select columns to download
+                    html.Div(
+                        [
+                            html.Div(
+                                'Download all data fitting the criteria:',
+                                style={
+                                    'padding': '3px 20px 0px 3px',
+                                    'font-size': '16px',
+                                    'font-weight': 'bold'
+                                }
+                            ),
+                            html.Div(
+                                id = 'download_column_status',
+                                style={
+                                    'padding':'0px 0px 0px 3px',
+                                    'font-style':'italic'
+                                }
+                            ),
+                            html.Div(
+                                dcc.Dropdown(
+                                    id='download_columns',
+                                    placeholder='Select fields to download...',
+                                    options=[
+                                        {'label': '{}'.format(col_name), 'value': col_name}
+                                            for col_name in column_names
+                                    ],
+                                    value=None,
+                                    multi=True,
+                                ),
+                                style=dropdown_style
+                            )
+                        ],
+                        style={
+                            'padding': '0px 5px 0px 0px',
+                            'margin-top': '5px'
+                        }
+                    ),
+                    # Element 10b: Download all data in criteria
+                    html.A(
+                        html.Button(
+                            'Download *ALL IN CRITERIA*',
+                            id='criteria_download_button',
+                            className='button-primary', 
+                            type='button-primary'
+                        ),
+                        id='download-criteria-link',
+                        download="within_criteria_data.csv",
+                        href="",
+                        target="_blank",
+                        style={'padding': '3px'}
+                    ),
+                ],
+                style = {
+                    'border': 'solid 1px #A2B1C6',
+                    'border-radius': '5px',
+                    'padding': '5px'
+                }
+            ),
+        ]),
 
         # Debug Elements
-        *debug_elements,
+        html.Div([
+            *debug_elements,
+            ],
+            style = { 
+                'border': 'solid 1px #A2B1C6', 
+                'border-radius': '5px', 
+                'padding': '5px', 
+                'margin-top': '20px', 
+            }
+        ),
 
     ], 
     style = { 
@@ -479,7 +609,7 @@ app.layout = html.Div([
         #'margin-top': '20px', 
         'flex': '1 0 auto'}),
 
-    # Element 10: Footer with links
+    # Element 11: Footer with links
     html.Div(
         [
             html.H6(
@@ -501,7 +631,7 @@ app.layout = html.Div([
                         href='https://www.uni-heidelberg.de/',
                         target='_blank',
                         style={
-                            'color': '#555',#'rgb(116, 101, 130)',
+                            'color': '#444',#'rgb(116, 101, 130)',
                             'text-decoration': 'none',
                             'letter-spacing': '0.03em'
                         }
@@ -590,21 +720,29 @@ def download_selected(selected_data, xaxis_name, yaxis_name, caxis_name, saxis_n
 # Allow Downloading Entire Brick
 ##################################################################################
 from os.path import isfile
-@app.callback(dash.dependencies.Output('download-full-link', 'href'),
-              [dash.dependencies.Input('brick_selector', 'value')])
+@app.callback(
+    [
+        dash.dependencies.Output('download-full-link', 'href'),
+        dash.dependencies.Output('download-full-link', 'download')
+    ],
+    [dash.dependencies.Input('download_file', 'value')]
+)
 def update_download_link(file_list):
     '''  '''
     if not file_list or file_list == "None":
-        return 
-    if type(file_list) is list:
-        print(file_list)
-        return '/dash/download?value={}'.format(",".join(file_list))
-        #file_value = file_value[0]
+        return [None, None]
+    # TODO: Figure out to get this to work
+    #if type(file_list) is list:
+    #    print(file_list)
+    #    save_name = "_and_".join([file_name.split('.')[0] for file_name in file_list]) + '.fits'
+    #    return ['/dash/download?value={}'.format(",".join(file_list)), save_name]
+    #    #file_value = file_value[0]
     filepath = settings['folderpath'] + file_list
     if not isfile(filepath):
-        return
+        return [None, None]
     else:
-        return '/dash/download?value={}'.format(file_list)
+        file_name = file_list
+        return ['/dash/download?value={}'.format(file_name), file_name]
 
 from flask import request, send_file
 @app.server.route('/dash/download') 
@@ -619,6 +757,98 @@ def download_file():
                 attachment_filename=filename,
                 as_attachment=True)
 ##################################################################################
+
+
+
+##################################################################################
+# Download by criteria
+##################################################################################
+from data_selector import get_limits, reduce_cols, slice_data, get_relevant_bricks, get_brick_usage
+from datetime import datetime as dt
+
+def args_to_criteria(bricks_selected, args):
+    criteria_dict = {}
+    if args:
+        # NOTE: REMEMBER TO DELOG IF LOG USED
+        criteria_dict = {slice_col_list[i]:limits for i, limits in enumerate(args)}
+        if bricks_selected and criteria_dict:
+            criteria_dict = get_limits(bricks_selected, criteria_dict, brick_column_details)
+        else:
+            criteria_dict = {}
+    return criteria_dict
+
+@app.callback(
+    [
+        dash.dependencies.Output('download-criteria-link', 'href'),
+        dash.dependencies.Output('download_column_status', 'children')
+    ],
+    [
+        dash.dependencies.Input('criteria_download_button', 'n_clicks_timestamp'),
+    ],
+    [
+        dash.dependencies.State('brick_selector', 'value'),
+        dash.dependencies.State('download_columns', 'value'),
+        *[dash.dependencies.State('{}'.format(col_name), 'value') 
+                    for col_name in slice_col_list]
+    ])
+def download_criteria(n_clicks_timestamp, bricks_selected, download_columns, *args):
+    print("  processing... {}".format(download_columns))
+    #ctx = dash.callback_context
+    #if not ctx.triggered:
+    #    msg = 'None of the buttons have been clicked yet'
+    #else:
+    #    print(ctx.triggered)
+    #    button_num = ctx.triggered[0]['prop_id'].split('.')
+    #    msg = 'Button {} was most recently clicked'.format(button_num)
+    #ctx_msg = json.dumps({
+    #    'states': ctx.states,
+    #    'triggered': ctx.triggered,
+    #    'inputs': ctx.inputs
+    #}, indent=2)
+    status = ''
+    # Check if update needed
+    if (not n_clicks_timestamp):
+        return [None, None]
+    if (not bricks_selected):
+        status += 'No Bricks Selected. '
+    if (not download_columns):
+        status += 'No Columns to Download Selected. '
+    if status:
+        return [None, 'Status: ' + status]
+    # Get criteria
+    criteria_dict = args_to_criteria(bricks_selected, args)
+    if (not criteria_dict):
+        status += 'No Criteria Specified. '
+        return [None, 'Status: ' + status]
+    status = 'success.'
+    # Set-up structure with appropriate types
+    selected_data = pd.DataFrame({
+        column_name:pd.Series([], dtype=brick_data_types[column_name]) 
+        for column_name in download_columns
+    })
+    for brick_name in bricks_selected:
+        selected_data = pd.concat(
+            [
+                selected_data,
+                pd.DataFrame(
+                    slice_data(
+                        data[brick_name].data, 
+                        criteria_dict,
+                        download_columns
+                    )
+                )
+            ]
+        )
+    return ["data:text/csv;charset=utf-8,%EF%BB%BF+{}".format(
+        urllib.parse.quote(
+            selected_data.to_csv(), 
+            encoding="utf-8"
+        )
+    ),'Status: ' + status]
+
+##################################################################################
+
+
 
 output_list = [
     dash.dependencies.Output('{}_div'.format(column_name), 'style')
@@ -671,9 +901,9 @@ def get_all_data(bricks_selected, display_count,
         # Slicing data once reads it once, making it faster than using index
         t1 = dt.now()
         selected_data = slice_data(
-                data[brick_name],  # Pass immutable for reference to limit copies
-                axis_name_list,
-                criteria_dict) 
+                data[brick_name].data,  # Pass immutable for reference to limit copies
+                criteria_dict,
+                axis_name_list) 
         time_slice = dt.now()
         print("slice data: {}".format(time_slice-t1))
 
@@ -810,8 +1040,8 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
             select_points = getSampleIndices(int(round(sample_size/brick_use)), brick_size)
             new_data = slice_data(
                 brick_data.data[select_points],
-                axis_name_list,
-                criteria_dict)  
+                criteria_dict,
+                axis_name_list)
             data_size = min(sample_size-current_length, min(sample_size, len(new_data[axis_name_list[0]])))
             print("new slice: {}/{}".format(len(new_data), int(round(sample_size/brick_use))))
             for axis_name in axis_name_list:
@@ -927,8 +1157,6 @@ update_graph_inputs = [
         *slice_inputs
 ]
 
-from datetime import datetime as dt
-
 @app.callback(
     dash.dependencies.Output('indicator-graphic', 'figure'),
     update_graph_inputs)
@@ -941,18 +1169,10 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
     print('args: ', args)
     #print('kwargs: ', kwargs)
 
-    criteria_dict = {}
-    if args:
-        # NOTE: REMEMBER TO DELOG IF LOG USED
-        criteria_dict = {slice_col_list[i]:limits for i, limits in enumerate(args)}
-        #print(criteria_dict)
-        if bricks_selected and criteria_dict:
-            criteria_dict = get_limits(bricks_selected, criteria_dict, brick_column_details)
-        else:
-            criteria_dict = {}
+    criteria_dict = args_to_criteria(bricks_selected, args)
 
     # Brick selection
-    print("Brick {} selected".format(bricks_selected))
+    print("  Brick {} selected".format(bricks_selected))
 
     # Special Functions on columns
     # 1. Herzsprung Russel columns
@@ -993,7 +1213,7 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         text   = np.array([''])
         title  = ''
     t1 = dt.now()
-    print("getting data: {}".format(t1-t0))
+    print("  getting data: {}".format(t1-t0))
 
     # Format for sending  
     data_dic = {
