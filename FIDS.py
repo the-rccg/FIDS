@@ -654,25 +654,26 @@ app.layout = html.Div([
 ##################################################################################
 from flask import request
 
-@app.callback(
-    dash.dependencies.Output('debug-status', 'children'),
-    [dash.dependencies.Input('shutdown-button', 'n_clicks')]
-)
-def shutdown(action):
-    #import sys
-    #sys.exit(0)
-    if action:
-        if action > 1:
-            func = request.environ.get('werkzeug.server.shutdown')
-            if func is None:
-                raise RuntimeError('Not running with the Werkzeug Server')
-            func()
-            ret_str = "shutting down...." #'/dash/shutdown'
+if debug:
+    @app.callback(
+        dash.dependencies.Output('debug-status', 'children'),
+        [dash.dependencies.Input('shutdown-button', 'n_clicks')]
+    )
+    def shutdown(action):
+        #import sys
+        #sys.exit(0)
+        if action:
+            if action > 1:
+                func = request.environ.get('werkzeug.server.shutdown')
+                if func is None:
+                    raise RuntimeError('Not running with the Werkzeug Server')
+                func()
+                ret_str = "shutting down...." #'/dash/shutdown'
+            else:
+                ret_str = "please confirm"
         else:
-            ret_str = "please confirm"
-    else:
-        ret_str = "debug status"
-    return ret_str
+            ret_str = "debug status"
+        return ret_str
 
 ##################################################################################
 # Download Selection
