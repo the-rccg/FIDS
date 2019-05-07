@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from memory_profiler import profile
 
 import json
@@ -12,12 +13,14 @@ def load_json(filename, savepath='/'):
         return {}
 
 def save_json(dictionary, filename, savepath='/'):
+    """ save dictionary as json """
     with open(savepath+filename,'w') as f:
         json.dump(dictionary, f, sort_keys=True, indent=4)
     return True
 
 import numpy as np
 def parse_datatype(value):
+    """ numpy datatypes to python native types for JSON serialization """
     if type(value) in [np.int64, np.int32]:
         return int(value)
     elif type(value) in [np.float64, np.float32]:

@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 from pprint import pprint
 from io_tools import save_json, load_json, parse_datatype
 
 def get_missing_brick_info(data, brick_column_details, brick_name_list, column_list, acceptable_types=['>f8', '>f4', '>i8', '>i4']):
+    """ get missing minimum, maximum for brick_column_details """
     brick_data_types = dict(data[list(data.keyzs())[0]].data.dtype.descr)
     # Save all columns missing for each brick
     missing_column_dict = {}
@@ -66,6 +68,3 @@ def get_missing_brick_info(data, brick_column_details, brick_name_list, column_l
     if added_info:
         save_json(brick_column_details, 'brick_column_details.json', savepath=settings['savepath'])
     return brick_column_details
-
-
-

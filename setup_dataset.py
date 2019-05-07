@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import json
 from pprint import pprint
@@ -31,7 +32,7 @@ else:
     column_names = sorted(data[filename_list[0]].columns.names)
 
 ########################################################################################
-#   Compute brick detaiks
+#   Compute brick details
 ########################################################################################
 slice_col_list = column_names#[0:5]
 print("Slice Col List: ", slice_col_list)

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import math
 import numpy as np
 import dash_core_components as dcc
@@ -26,7 +27,7 @@ def get_log_range(column_min, column_max, log_base=10):
     return log_range
 
 def construct_log_range(column_name, column_details):
-    ''' construct slider with log markings adjusting for negatives '''
+    """ construct slider with log markings adjusting for negatives """
     marks = {'0':0, **{
         (i): '{}'.format(10 ** i) 
         for i in range(*get_log_range(column_name, column_details))
@@ -62,7 +63,7 @@ def get_range_slider(column_name, id_given, col_range, marks=None, granularity=1
     return html.Div([title, html.Div(slider, style = {'margin': '0px 0  15px 0'})])
 
 def get_marks(col_range, certainty=2, include_zero=False):
-    ''' get proper formatting for marks '''
+    """ get proper formatting for marks """
     sig_digits = get_sig_digits(col_range, certainty)
     sig_digit_formatter = "{}".format(sig_digits)
     marks = {
@@ -80,6 +81,7 @@ def get_marks(col_range, certainty=2, include_zero=False):
     return marks
 
 def get_sig_digits(col_range, certainty):
+    """ given tuple and certainty, return number of significant digits necessary to differntiate between the two numbers """
     sig_digit = round(abs(np.log10(1-np.min(np.abs(col_range))/np.max(np.abs(col_range)))))+certainty
     if not np.isfinite(sig_digit):
         print(col_range)
@@ -88,6 +90,7 @@ def get_sig_digits(col_range, certainty):
     return sig_digit
 
 def parse_datatype(value):
+    """ parse numpy datatypes to python standard for JSON serialization """
     if type(value) in [np.int64, np.int32]:
         return int(value)
     elif type(value) in [np.float64, np.float32]:

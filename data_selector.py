@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 from datetime import datetime as dt
 import time
@@ -8,7 +9,7 @@ from memory_profiler import profile
 #   Slicing Data
 ##################################################################################
 def get_limits(bricks_selected, limit_dict, brick_column_details):
-    ''' returns limits that are smaller than the limits in the selected bricks '''
+    """ returns limits that are smaller than the limits in the selected bricks """
     if limit_dict:
         brick_limits = {
             col_name:[ 
@@ -33,7 +34,7 @@ def get_limits(bricks_selected, limit_dict, brick_column_details):
     return lim_dict
 
 def get_brick_usage(bricks_selected, limit_dict, brick_column_details):
-    ''' returns dict with brick name and fraction of brick used '''
+    """ returns dict with brick name and fraction of brick used """
     if limit_dict:
         brick_usage = {}
         for brick in bricks_selected:
@@ -59,6 +60,7 @@ def get_brick_usage(bricks_selected, limit_dict, brick_column_details):
     return brick_usage
 
 def get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, min_usage):
+    """ return brick list that is above criteria """
     # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
     brick_usage = get_brick_usage(bricks_selected, criteria_dict, brick_column_details)
     print("    brick_usage: ", brick_usage)
@@ -69,7 +71,7 @@ def get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, mi
     return bricks_selected
 
 def reduce_cols(data, axis_name_list, selection=0):
-    ''' slice by axis name list '''
+    """ slice by axis name list """
     # TODO: testing other implementation
     t1 = time.time()
     if type(selection) != int:
@@ -93,14 +95,15 @@ def reduce_cols(data, axis_name_list, selection=0):
     return selection
 
 def get_within_limits(data, col_name, limits):
+    """ return boolean array of entries that are within limits """
     return np.logical_and(
         data[col_name] > limits[0], 
         data[col_name] < limits[1]
     )
 
 def slice_data(data, criteria_dict, axis_name_list=[], list_comp=True):
-    ''' given data array, slice it and return 
-    criteria {'column_name':(min, max)}, return sliced '''
+    """ given data array, slice it and return 
+    criteria {'column_name':(min, max)}, return sliced """
     # Pass in Data reference
     #t1 = time.time()
     #data = data.data
@@ -130,7 +133,7 @@ def slice_data(data, criteria_dict, axis_name_list=[], list_comp=True):
 # No longer used...
 
 def get_slice_idx(data, axis_name_list, criteria_dict):
-    ''' given criteria {'column_name':(min, max)}, return sliced '''
+    """ given criteria {'column_name':(min, max)}, return sliced """
     # Bulk slicing
     #print(criteria_dict.items())
     #t1 = time.time()
@@ -143,7 +146,7 @@ def get_slice_idx(data, axis_name_list, criteria_dict):
     return selection
 
 def get_slice_idx2(data, axis_name_list, criteria_dict):
-    ''' given criteria {'column_name':(min, max)}, return sliced '''
+    """ given criteria {'column_name':(min, max)}, return sliced """
     # Individual slicing for more efficient computation
     #t1 = time.time()
     selection = np.array([])#np.ones(data.data.shape[0], dtype=bool)

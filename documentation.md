@@ -11,7 +11,7 @@ FIDS requires Python 3.6+ installed and the use of your preferred package manage
 FIDS is hosted as a package on GitHub (<https://www.github.com/the-rccg/FIDS/>).
 There are two ways to start your version of FIDS locally:
 
-- download FIDS  as a ZIP file from GitHub and extract to desired directory
+- download FIDS as a ZIP file from GitHub and extract to desired directory
 - fork the GitHub repository directly
 
 ### Configuring the settings
@@ -35,7 +35,7 @@ Visual Settings:
 
 - ```name:  [string]``` Name of the app to be displayed in the title bar of the browser
 - ```title:  [string]``` Name of the app to be displayed in the center-top of the applicaiton
-- ```columns_to_use:  [list of strings] ``` Column names that will be allowed to be selected in the application
+- ```columns_to_use:  [list of strings]``` Column names that will be allowed to be selected in the application
 - ```name_column:  [string]``` Name of the column used to name the datapoints with on selection
 - ```color_scale:  [string]``` Name of the colorscheme used for the color axis
 - ```marker_size:  [int]``` Size of datapoints
@@ -52,7 +52,6 @@ Default Values:
 - ```default_color_column:  [string]``` Default color-collumn to load for every visitor
 - ```display_count_default:  [integer]``` Default for the number of points to be loaded
 
-  
 Slicing Settings:
 
 - ```selection_granularity:  [integer]``` Number of elements in which the space if uniformly cut to allow slicing
@@ -65,6 +64,7 @@ FIDS needs certain metadata to display limits, and determine if a file should ev
 In order to calculate these, just run the "setup.py" file after pointing the path in settings to the correct destination as described in the preceeding section.
 
 It is also possible to manually provide these. For this a nested JSON format is used in the local/brick_columns_details.json (or whever you specified your local file destination). The format for this is:
+
 ```json
 {
     "file_name.fits": {
@@ -80,7 +80,7 @@ It is also possible to manually provide these. For this a nested JSON format is 
 
 ### Starting FIDS
 
-Once the column details JSON is created the app can be started by running FIDS.py in your console. 
+Once the column details JSON is created the app can be started by running FIDS.py in your console.
 This will start the flask server on your defined IP address. 
 
 To access FIDS simply open up a window in your browser, type in the IP address and port into the address field (e.g. ```127.0.0.1:80```) and wait for the app to load. Note, the first load can take longer as the server has to check and set up the application.
@@ -107,12 +107,12 @@ The use of commercial databases and cloud infrastrucure for analysis of astronom
 - [x] Adjust limits based on selected files
 - [x] Interactively visualize full or subset of qualifying points
 - [x] Allow downloading: individual files, current selection
+- [x] Allow downloading all points that fall under criteria
 
 ## Upcoming Features
 
 - [ ] Distribute slicing workload using Dask
-- [ ] Allow downloading all points that fall under criteria
-- [ ] Download all displayed points (if none selected)
+- [ ] Download all displayed points, if none selected
 - [ ] Mouse-over explanation
 - [ ] How-to Documentation
 
