@@ -1,5 +1,5 @@
 {
-    "debug": true,
+    "debug": false,
     "name": "FIDS PHAT BEAST",
     "title": "PHAT BEAST",
     "folderpath": "../PHAT_BEAST/", 

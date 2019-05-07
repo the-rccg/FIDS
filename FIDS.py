@@ -190,6 +190,18 @@ if debug:
             style={'padding': '3px'}
         )
     )
+    # style
+    debug_elements = [
+        html.Div([
+            *debug_elements,
+            ],
+            style = { 
+                'border': 'solid 1px #A2B1C6', 
+                'border-radius': '5px', 
+                'padding': '5px', 
+                'margin-top': '20px', 
+            }
+        )]
 
 
 ###############################################################################
@@ -590,16 +602,7 @@ app.layout = html.Div([
         ]),
 
         # Debug Elements
-        html.Div([
-            *debug_elements,
-            ],
-            style = { 
-                'border': 'solid 1px #A2B1C6', 
-                'border-radius': '5px', 
-                'padding': '5px', 
-                'margin-top': '20px', 
-            }
-        ),
+        *debug_elements,
 
     ], 
     style = { 
@@ -698,7 +701,7 @@ def selected_data_to_csv(selected_data_dict, xaxis_name, yaxis_name, caxis_name,
         csv_string = "description,{},{},{}".format(xaxis_name,yaxis_name,caxis_name) + linesep + "{}".format(linesep).join(['{}, {}, {}, {}'.format(point['text'], point['x'], point['y'], point['marker.color']) for point in points])
     else:
         csv_string = pd.DataFrame(points).to_csv()
-    print(csv_string)
+    #print(csv_string)
     return csv_string
 
 @app.callback(
@@ -1049,7 +1052,13 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
                 criteria_dict,
                 axis_name_list)
             data_size = min(sample_size-current_length, min(sample_size, len(new_data[axis_name_list[0]])))
-            print("  new slice: {}/{}".format(len(new_data), int(round(sample_size/brick_use))))
+            try:
+                print("  new slice (got/wanted/queried): {:,}/{:,}/{:,}".format(
+                    len(new_data[axis_name_list[0]]), 
+                    sample_size,
+                    int(round(sample_size/brick_use))))
+            except:
+                pass
             for axis_name in axis_name_list:
                 selected_data[axis_name][current_length:current_length+data_size] = new_data[axis_name][0:data_size]
             current_length += data_size
@@ -1172,7 +1181,7 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
                  display_count, bricks_selected, *args, **kwargs
                  ):
     """ update graph based on new selected variables """
-    print('args: ', args)
+    #print('args: ', args)
     #print('kwargs: ', kwargs)
 
     criteria_dict = args_to_criteria(bricks_selected, args)

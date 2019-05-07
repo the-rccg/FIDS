@@ -61,7 +61,7 @@ def get_brick_usage(bricks_selected, limit_dict, brick_column_details):
 def get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, min_usage):
     # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
     brick_usage = get_brick_usage(bricks_selected, criteria_dict, brick_column_details)
-    print(brick_usage)
+    print("    brick_usage: ", brick_usage)
     bricks_selected = [
         brick for brick in bricks_selected 
         if brick_usage[brick] > min_usage
@@ -83,7 +83,7 @@ def reduce_cols(data, axis_name_list, selection=0):
             for axis_name in axis_name_list
         }
     t2 = time.time()
-    print("reduce: {:.2f}s".format(t2-t1))
+    print("    reduce: {:.2f}s".format(t2-t1))
     # Test:  Requires ColumnDef, and does implicit copy too just into a rec_array
     #     data.from_columns(axis_name_list, nrows=len(data))
     # Test:  ValueError: could not convert string to float: 'PHAT J....' (since np.empty has 1 type rather than multiple)
@@ -113,7 +113,7 @@ def slice_data(data, criteria_dict, axis_name_list=[], list_comp=True):
                 for col_name, limits in criteria_dict.items()],
             0)
         t2 = time.time()
-        print("list comprehension: {:.2f}s".format(t2-t1))
+        print("    list comprehension: {:.2f}s".format(t2-t1))
     # Individual slicing for more efficient computation
     else:
         t1 = time.time()
@@ -124,7 +124,7 @@ def slice_data(data, criteria_dict, axis_name_list=[], list_comp=True):
             else:
                 np.logical_and(selection, get_within_limits(data, col_name, limits), out=selection)
         t2 = time.time()
-        print("cycle {:.2f}s".format(t2-t1))
+        print("    cycle {:.2f}s".format(t2-t1))
     return reduce_cols(data, axis_name_list, selection)
 ##################################################################################
 # No longer used...
