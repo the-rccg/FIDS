@@ -3,6 +3,8 @@
 FITS Dash App
 Quickly sketch and explore data tables and relations sae in FITS format 
 
+Line-length:  84 (since thats VSCode on 1080 vertical)
+
 @author: RCCG
 """
 import numpy as np
@@ -26,7 +28,8 @@ else:
 # File names
 # TODO: Allow dictionary for renaming in display
 from os import listdir
-filename_list = sorted([file for file in listdir(settings['folderpath']) if file[-5:].lower()==".fits"])
+filename_list = sorted([file for file in listdir(settings['folderpath']) 
+                             if  file[-5:].lower()==".fits"])
 
 # Load Data
 from astropy.io import fits
@@ -34,8 +37,8 @@ from astropy.io import fits
 
 def dict_of_files(filename_list):
     return {
-            filename: fits.open(settings['folderpath'] + filename, memmap=True)[1] 
-            for filename in filename_list
+        filename: fits.open(settings['folderpath'] + filename, memmap=True)[1] 
+        for filename in filename_list
     }
 data = dict_of_files(filename_list)
 
@@ -95,9 +98,9 @@ import dash_html_components as html
 import plotly.graph_objs as go
 
 
-##################################################################################
+####################################################################################
 #   Allow range slicing
-##################################################################################
+####################################################################################
 from io_tools import parse_datatype
 # Add column criteria selection
 def get_brick_data_types(data, filename_list):
@@ -173,7 +176,7 @@ slice_inputs = [
     dash.dependencies.Input('{}'.format(col_name), 'value') 
     for col_name in slice_col_list
 ]
-##################################################################################
+####################################################################################
 
 debug_elements = []
 if debug:
@@ -211,9 +214,9 @@ if debug:
         )]
 
 
-###############################################################################
+####################################################################################
 # DASH Application
-###############################################################################
+####################################################################################
 external_stylesheets = ['assets/FIDS.css']
 external_userbase = [
     ['hello', 'world']
@@ -231,7 +234,9 @@ app.title = 'FITS Dashboard: {}'.format(settings['name'])
 dropdown_style = {
         'padding': '3px'
 }
+
 # Visual layout
+# TODO: Move "style"-img into CSS
 app.layout = html.Div([
     html.Div([
         
@@ -292,42 +297,55 @@ app.layout = html.Div([
                             ],
                             value=settings['default_x_column']
                         ),
-                        # X-Axis: Linear vs. Log
-                        html.Div(
-                            [
-                                dcc.RadioItems(
-                                    id='xaxis-type',
-                                    options=[
-                                        {'label': i, 'value': i} 
-                                            for i in ['Linear', 'Log']
-                                    ],
-                                    value='Linear',
-                                    labelStyle={'display': 'inline-block'}
-                                )
-                            ], 
-                            style={'float': 'left', 'display': 'inline-block'}
-                        ),
-                        # X-Axis: Increasing vs. Reversed
-                        html.Div(
-                            [
-                                dcc.RadioItems(
-                                    id='xaxis-orientation',
-                                    options=[
-                                        {'label': i, 'value': i} 
-                                            for i in ['increasing', 'reversed']
-                                    ],
-                                    value='increasing',
-                                    labelStyle={'display': 'inline-block'}
-                                )
-                            ], 
-                            style={
-                                    'float': 'right', 
-                                    'display': 'inline-block', 
-                                    'padding': '0px 5px 0px 0px'  # Adjust right alignment
-                            }
-                        )
+                       html.Details([
+                            html.Summary(
+                                'X-Axis Formatting', 
+                                style={
+                                    'font-size': '13px',
+                                    'color': '#444',
+                                    'padding': '0px 0px 0px 7px'
+                                }
+                            ),
+                            # X-Axis: Linear vs. Log vs. Exp
+                            html.Div(
+                                [
+                                    dcc.RadioItems(
+                                        id='xaxis-type',
+                                        options=[
+                                            {'label': i, 'value': i} 
+                                                for i in ['Linear', 'Log()', 'e^()']
+                                        ],
+                                        value='Linear',
+                                        labelStyle={'display': 'inline-block'}
+                                    )
+                                ], 
+                                style={'float': 'left', 'display': 'inline-block'}
+                            ),
+                            # X-Axis: Increasing vs. Decreasing
+                            html.Div(
+                                [
+                                    dcc.RadioItems(
+                                        id='xaxis-orientation',
+                                        options=[
+                                            {'label': i, 'value': i} 
+                                                for i in ['increasing', 'decreasing']
+                                        ],
+                                        value='increasing',
+                                        labelStyle={'display': 'inline-block'}
+                                    )
+                                ], 
+                                style={
+                                        'float': 'right', 
+                                        'display': 'inline-block', 
+                                        'padding': '0px 5px 0px 0px'  # Adjust right alignment
+                                }
+                            )
+                       ])
                     ],
-                    style={'width': '49%', 'display': 'inline-block'}
+                    style={
+                        'width': '49%', 
+                        'display': 'inline-block'
+                    }
                 ),
                 # 4.2: Select Y-Axis
                 html.Div(
@@ -342,45 +360,60 @@ app.layout = html.Div([
                             ],
                             value=settings['default_y_column']
                         ),
-                        # Y-Axis: Linear vs. Log
-                        html.Div(
-                            [
-                                #html.H6('Scale:', style={'font-size':'12px', 'display':'inline-block', 'width':'50px'}),
-                                dcc.RadioItems(
-                                    id='yaxis-type',
-                                    options=[
-                                        {'label': i, 'value': i} 
-                                            for i in ['Linear', 'Log']
-                                    ],
-                                    value='Linear',
-                                    labelStyle={'display': 'inline-block'}
-                                )
-                            ], 
-                            style={'width': '49%', 'display': 'inline-block'}
-                        ),
-                        # Y-Axis: Increasing vs. Reversed
-                        html.Div(
-                            [
-                                dcc.RadioItems(
-                                    id='yaxis-orientation',
-                                    options=[
-                                        {'label': i, 'value': i} 
-                                            for i in ['increasing', 'reversed']
-                                    ],
-                                    value='increasing',
-                                    labelStyle={'display': 'inline-block'}
-                                )
-                            ], 
-                            style={
-                                    'float': 'right', 
-                                    'display': 'inline-block', 
-                                    'padding':'0px 5px 0px 0px'  # Adjust right alignment
-                            }
-                        )
+                        html.Details([
+                            html.Summary(
+                                'Y-Axis Formatting', 
+                                style={
+                                    'font-size': '13px',
+                                    'color': '#444',
+                                    'padding': '0px 0px 0px 7px'
+                                }
+                            ),
+                            # Y-Axis: Linear vs. Log vs. Exp
+                            html.Div(
+                                [
+                                    #html.H6('Scale:', style={'font-size':'12px', 'display':'inline-block', 'width':'50px'}),
+                                    dcc.RadioItems(
+                                        id='yaxis-type',
+                                        options=[
+                                            {'label': i, 'value': i} 
+                                                for i in ['Linear', 'Log()', 'e^()']
+                                        ],
+                                        value='Linear',
+                                        labelStyle={'display': 'inline-block'}
+                                    )
+                                ], 
+                                style={'width': '49%', 'display': 'inline-block'}
+                            ),
+                            # Y-Axis: Increasing vs. Decreasing
+                            html.Div(
+                                [
+                                    dcc.RadioItems(
+                                        id='yaxis-orientation',
+                                        options=[
+                                            {'label': i, 'value': i} 
+                                                for i in ['increasing', 'decreasing']
+                                        ],
+                                        value='increasing',
+                                        labelStyle={'display': 'inline-block'}
+                                    )
+                                ], 
+                                style={
+                                        'float': 'right', 
+                                        'display': 'inline-block', 
+                                        'padding':'0px 5px 0px 0px'  # Adjust right alignment
+                                }
+                            )
+                        ]),
                     ],
-                    style={'width': '49%', 'float': 'right', 'display': 'inline-block'}
+                    style={
+                        'width': '49%', 
+                        'float': 'right', 
+                        'display': 'inline-block'
+                    }
                 ),
-                # 4.3: Select Z-Axis ? TODO: 3D Graphing
+                # 4.3: Select Z-Axis ? 
+                # TODO: 3D Graphing
             ],
             style=dropdown_style 
         ),
@@ -659,9 +692,9 @@ app.layout = html.Div([
     #html.Footer('test',style={'flex-shrink': '0'})
 ])
 
-##################################################################################
+####################################################################################
 # Debug Elements
-##################################################################################
+####################################################################################
 from flask import request
 
 if debug:
@@ -685,9 +718,9 @@ if debug:
             ret_str = "debug status"
         return ret_str
 
-##################################################################################
+####################################################################################
 # Download Selection
-##################################################################################
+####################################################################################
 from os import linesep 
 import pandas as pd
 import urllib.parse
@@ -727,9 +760,9 @@ def download_selected(selected_data, xaxis_name, yaxis_name, caxis_name, saxis_n
         return 
     
 
-##################################################################################
+####################################################################################
 # Allow Downloading Entire Brick
-##################################################################################
+####################################################################################
 from os.path import isfile
 @app.callback(
     [
@@ -767,12 +800,12 @@ def download_file():
                 #mimetype='text/csv',
                 attachment_filename=filename,
                 as_attachment=True)
-##################################################################################
+####################################################################################
 
 
-##################################################################################
+####################################################################################
 # Download by criteria
-##################################################################################
+####################################################################################
 from data_selector import get_limits, reduce_cols, slice_data, get_relevant_bricks, get_brick_usage
 from datetime import datetime as dt
 
@@ -857,12 +890,12 @@ def download_criteria(n_clicks_timestamp, bricks_selected, download_columns, *ar
         )
     ),'Status: ' + status]
 
-##################################################################################
+####################################################################################
 
 
-##################################################################################
+####################################################################################
 #   Getting Data
-##################################################################################
+####################################################################################
 def get_all_data(bricks_selected, display_count, 
                  xaxis_column_name, yaxis_column_name, color_column_name, size_column_name, 
                  criteria_dict, brick_column_details):
@@ -1054,11 +1087,11 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
             sufficient_data = True
     # Return data
     return selected_data
-##################################################################################
+####################################################################################
 
-##################################################################################
+####################################################################################
 #   Sliders 
-##################################################################################
+####################################################################################
 from slider_magic import get_marks
 
 output_list = [
@@ -1148,7 +1181,7 @@ def update_slice_limits(bricks_selected):
         *slice_inputs
     ],
     [   
-        dash.dependencies.State('brick_selector', 'value')  # Bricks Selected TODO
+        dash.dependencies.State('brick_selector', 'value')
     ]
 )
 def update_slider_titles(*args):
@@ -1158,6 +1191,7 @@ def update_slider_titles(*args):
     args = args[:-1]
     criteria = args_to_criteria(bricks_selected, args)
     pprint(criteria)
+    # TODO: Rewrite this more efficient
     new_titles = []
     for slider_col_name in slice_col_list:
         title = slider_col_name
@@ -1174,13 +1208,13 @@ def update_slider_titles(*args):
         new_titles.append(title)
     return new_titles
 
-##################################################################################
+####################################################################################
 
 def get_axis_properties(axis_column_name, axis_type, axis_orientation):
     return {
         'title': axis_column_name,
-        'type': 'linear' if axis_type == 'Linear' else 'log',
-        'autorange': 'reversed' if axis_orientation == 'reversed' else True,
+        'type': 'log' if axis_type == 'Log()' else 'linear', 
+        'autorange': 'reversed' if axis_orientation == 'decreasing' else True,
         'automargin': True
     }
 
@@ -1215,8 +1249,7 @@ update_graph_inputs = [
 def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_column_name,
                  xaxis_type, yaxis_type, 
                  xaxis_orientation, yaxis_orientation,
-                 display_count, bricks_selected, *args, **kwargs
-                 ):
+                 display_count, bricks_selected, *args, **kwargs):
     """ update graph based on new selected variables """
     #print('args: ', args)
     #print('kwargs: ', kwargs)
@@ -1226,6 +1259,7 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
     # Brick selection
     print("  Brick {} selected".format(bricks_selected))
 
+    # TODO: Allow more complex column variations
     # Special Functions on columns
     # 1. Herzsprung Russel columns
     # absolut magnitude / luminosity
@@ -1266,6 +1300,12 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         title  = ''
     t1 = dt.now()
     print("  getting data: {}".format(t1-t0))
+
+    # Process Data
+    if xaxis_type == 'e^()':
+        np.exp(x_data, out=x_data)
+    if yaxis_type == 'e^()':
+        np.exp(y_data, out=y_data)
 
     # Format for sending  
     data_dic = {
