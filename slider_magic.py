@@ -48,9 +48,14 @@ def delog(value):
     return 10**np.array(value)
 
 def get_range_slider(column_name, id_given, col_range, marks=None, granularity=1000, certainty=2):
-    """ create a proper styled range slider """
+    """
+    create a proper styled range slider
+    returns:  title, DIV( slider )
+    """
+    # Automatically set marks if not defined
     if not marks:
         marks = get_marks(col_range, certainty=certainty) #{i:'{}'.format(i) for i in [col_range[0], col_range[1]]}
+    # Create Slider Object
     slider = dcc.RangeSlider(
         id = id_given,
         min = col_range[0],
@@ -59,11 +64,17 @@ def get_range_slider(column_name, id_given, col_range, marks=None, granularity=1
         marks = marks,
         step = (col_range[1]-col_range[0])/granularity
     )
-    title = html.Div('{}'.format(column_name), style={'margin': '0   0 -5px 10px'})
-    return html.Div([title, html.Div(slider, style = {'margin': '0px 0  15px 0'})])
+    # Set Title and position it above it
+    title = html.Div(
+        '{}'.format(column_name), 
+        id = "{}_title".format(id_given),
+        style = {'margin': '0   0 -5px 10px'}
+    )
+    # Create wrapper to allow title
+    return title, html.Div(slider, style = {'margin': '0px 0  15px 0'})
 
 def get_marks(col_range, certainty=2, include_zero=False):
-    """ get proper formatting for marks """
+    """ returns {number:'formatted_number'} with proper formatting for marks """
     sig_digits = get_sig_digits(col_range, certainty)
     sig_digit_formatter = "{}".format(sig_digits)
     marks = {
@@ -81,7 +92,11 @@ def get_marks(col_range, certainty=2, include_zero=False):
     return marks
 
 def get_sig_digits(col_range, certainty):
-    """ given tuple and certainty, return number of significant digits necessary to differntiate between the two numbers """
+    """
+    given tuple and certainty, 
+    return number of significant digits necessary to differentiate 
+    between the two numbers and add a desired further certainty
+    """
     sig_digit = round(abs(np.log10(1-np.min(np.abs(col_range))/np.max(np.abs(col_range)))))+certainty
     if not np.isfinite(sig_digit):
         print(col_range)

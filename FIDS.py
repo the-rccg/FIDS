@@ -137,35 +137,42 @@ slider_style = {
     'padding': '0px 20px 3px 20px', # above right below left
     'width': 'inherit'
 }
+# List of: DIV( DIV( title ), DIV( slider ) ) 
 slice_list = [
     html.Div(
-        id = '{}_div'.format(column_name), 
-        children=[
-            #get_log_range_slider(
-            #    column_name,
-            #    column_details,
-            #    id_given = '{}'.format(column_name),
-            #    granularity = settings['selection_granularity']
-            #)
-            get_range_slider(
+        get_range_slider(
                 column_name, 
                 id_given = '{}'.format(column_name), 
                 col_range = [
                     column_details[column_name]['min'], 
                     column_details[column_name]['max']
                 ], 
-                marks=None, 
-                granularity=settings['selection_granularity']
-            )
-        ],
-        style={**slider_style,
-               'display': None
+                marks = None, 
+                granularity = settings['selection_granularity'],
+                certainty = settings["slider_number_certainty"]
+        ),
+        id = '{}_div'.format(column_name), 
+        #children = [
+            # TODO: Fix Log Sliders
+            # TODO: Automatically recognize who needs log scale
+            #get_log_range_slider(
+            #    column_name,
+            #    column_details,
+            #    id_given = '{}'.format(column_name),
+            #    granularity = settings['selection_granularity']
+            #)    
+        #],
+        style = {
+            **slider_style,
+            'display': None
         }
     )
     for column_name in slice_col_list
 ]
-slice_inputs = [dash.dependencies.Input('{}'.format(col_name), 'value') 
-                    for col_name in slice_col_list]
+slice_inputs = [
+    dash.dependencies.Input('{}'.format(col_name), 'value') 
+    for col_name in slice_col_list
+]
 ##################################################################################
 
 debug_elements = []
@@ -763,7 +770,6 @@ def download_file():
 ##################################################################################
 
 
-
 ##################################################################################
 # Download by criteria
 ##################################################################################
@@ -771,6 +777,7 @@ from data_selector import get_limits, reduce_cols, slice_data, get_relevant_bric
 from datetime import datetime as dt
 
 def args_to_criteria(bricks_selected, args):
+    """ returns dictionary: 'column_name': [min, max] """
     criteria_dict = {}
     if args:
         # NOTE: REMEMBER TO DELOG IF LOG USED
@@ -853,35 +860,9 @@ def download_criteria(n_clicks_timestamp, bricks_selected, download_columns, *ar
 ##################################################################################
 
 
-
-output_list = [
-    dash.dependencies.Output('{}_div'.format(column_name), 'style')
-    for column_name in slice_col_list
-]
-@app.callback(
-        output_list,
-        [dash.dependencies.Input('column_slicer', 'value')]
-        )
-def hide_unhide(criteria_show_list):
-    # Hide all
-    #print("hide_unhide()")
-    show_dict = {
-        '{}_div'.format(column_name):{**slider_style, 'display': 'none'} 
-        for column_name in slice_col_list
-    }
-    # Show selected
-    if criteria_show_list:
-        for col_show in criteria_show_list:
-            show_dict['{}_div'.format(col_show)] = {**slider_style, 'display': 'block'}
-        #print(show_dict)
-    return list(show_dict.values())
-
-
 ##################################################################################
 #   Getting Data
 ##################################################################################
-from data_selector import get_limits, reduce_cols, slice_data, get_relevant_bricks, get_brick_usage
-
 def get_all_data(bricks_selected, display_count, 
                  xaxis_column_name, yaxis_column_name, color_column_name, size_column_name, 
                  criteria_dict, brick_column_details):
@@ -945,8 +926,8 @@ def get_sample_data(bricks_selected, display_count,
     else:          s_data = np.array([])
     # TODO: Read Itemsize from column definition in FITS file
     # TODO: Allow non-char description
-    #text = np.chararray(display_count, itemsize=25)  # Description
-    text = np.empty(display_count, dtype='U{}'.format(100))  # Description
+    text = np.empty(display_count, dtype='<U{}'.format(100))  # Description
+    #text = np.empty(display_count, dtype='|S{}'.format(100))  # Description
     t1 = dt.now()
     # Create new random sample
     print("resampling with {} points".format(display_count))
@@ -985,7 +966,7 @@ def get_sample_data(bricks_selected, display_count,
             c_data[current_length:current_length+sample_size] = selected_data[color_column_name]
         if has_saxis:  
             s_data[current_length:current_length+sample_size] = selected_data[size_column_name]
-        print(selected_data[settings['name_column']].shape)
+        print(selected_data[settings['name_column']].dtype)
         text[current_length:current_length+sample_size] = selected_data[settings['name_column']]
         print("  assign {}:  {}".format(brick_i, dt.now()-t1))
         current_length += sample_size
@@ -1076,9 +1057,31 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
 ##################################################################################
 
 ##################################################################################
-#   make slicers dynamic
+#   Sliders 
 ##################################################################################
 from slider_magic import get_marks
+
+output_list = [
+    dash.dependencies.Output('{}_div'.format(column_name), 'style')
+    for column_name in slice_col_list
+]
+@app.callback(
+        output_list,
+        [dash.dependencies.Input('column_slicer', 'value')]
+        )
+def hide_unhide(criteria_show_list):
+    # Hide all
+    #print("hide_unhide()")
+    show_dict = {
+        '{}_div'.format(column_name):{**slider_style, 'display': 'none'} 
+        for column_name in slice_col_list
+    }
+    # Show selected
+    if criteria_show_list:
+        for col_show in criteria_show_list:
+            show_dict['{}_div'.format(col_show)] = {**slider_style, 'display': 'block'}
+        #print(show_dict)
+    return list(show_dict.values())
 
 @app.callback(
     [
@@ -1094,7 +1097,7 @@ from slider_magic import get_marks
     [dash.dependencies.Input('brick_selector', 'value')]
 )
 def update_slice_limits(bricks_selected):
-    '''  '''
+    """ update limits on sliders depending on bricks selected """
     #print("update_slice_limits")
     if bricks_selected:
         mins = [
@@ -1136,6 +1139,38 @@ def update_slice_limits(bricks_selected):
     #print('slice_limits: ', reduced_limits)
     return reduced_limits
 
+@app.callback(
+    [
+        dash.dependencies.Output('{}_title'.format(col_name), 'children') 
+        for col_name in slice_col_list
+    ],
+    [
+        *slice_inputs
+    ],
+    [   
+        dash.dependencies.State('brick_selector', 'value')  # Bricks Selected TODO
+    ]
+)
+def update_slider_titles(*args):
+    """ update titles with limit values if applicable """
+    # TODO: Handle arguments nicer than this hack
+    bricks_selected = args[-1]
+    args = args[:-1]
+    criteria = args_to_criteria(bricks_selected, args)
+    pprint(criteria)
+    new_titles = []
+    for slider_col_name in slice_col_list:
+        title = slider_col_name
+        if slider_col_name in criteria:
+            marks = get_marks(
+                criteria[slider_col_name],
+                certainty=settings["slider_number_certainty"], 
+                include_zero=False)
+            title += "  ({} - {})".format(
+                *marks.values()
+            )
+        new_titles.append(title)
+    return new_titles
 
 ##################################################################################
 
