@@ -5,6 +5,226 @@ import time
 
 from memory_profiler import profile
 
+def get_sample_indices(sample_size, total_size):
+    """ returns data points for the subsample in the range
+
+    Timed Tests:   data_count = 100,000,000;  sample_size = 100,000;
+        926 us  np.random.randint(low=0, high=data_count+1, size=sample_size) 
+        935 us  np.random.choice(data_count, size=sample_size, replace=True, p=None)
+         85 ms  random.sample(range(data_count), sample_size)
+          6 s   np.random.choice(data_count, size=sample_size, replace=False, p=None)
+    """
+    # note: allows multiple identical values, hence n<=num_points, but orders mag faster
+    select_points = np.random.randint(
+                        low=0, high=total_size, 
+                        size=sample_size
+                    )
+    return select_points
+
+####################################################################################
+#   Getting Data
+####################################################################################
+
+def get_all_data(bricks_selected, display_count, 
+                 xaxis_column_name, yaxis_column_name, color_column_name, size_column_name, 
+                 criteria_dict, brick_column_details, settings, selected_columns, data):
+    """ Return all data in bricks which conform by criteria
+
+    Iteratively appends data from bricks
+    """
+    # Setup
+    has_caxis = color_column_name in selected_columns
+    has_saxis = size_column_name in selected_columns
+    x_data = np.array([])  # X-Axis
+    y_data = np.array([])  # Y-Axis
+    c_data = np.array([])  # Color
+    s_data = np.array([])  # Sizevbn
+    text   = np.array([])  # Text
+    current_length = 0
+    # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
+    bricks_selected = get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, min_usage=0)
+    for brick_name in bricks_selected:
+        axis_name_list = [settings['name_column'], xaxis_column_name, yaxis_column_name]
+        if has_caxis:  axis_name_list.append(color_column_name)
+        if has_saxis:  axis_name_list.append(size_column_name)
+        # Slicing data once reads it once, making it faster than using index
+        t1 = dt.now()
+        selected_data = slice_data(
+                data[brick_name].data,  # Pass immutable for reference to limit copies
+                criteria_dict,
+                axis_name_list) 
+        time_slice = dt.now()
+        print("slice data: {}".format(time_slice-t1))
+        t1 = dt.now()
+        # TODO: Test memory and CPU for np.append vs np.concat
+        # NOTE: Creates copies. Length unknown, hence no better option. 
+        x_data = np.append(x_data, selected_data[xaxis_column_name])
+        y_data = np.append(y_data, selected_data[yaxis_column_name])
+        if has_caxis:  
+            c_data = np.append(c_data, selected_data[color_column_name])
+        if has_saxis:  
+            s_data = np.append(s_data, selected_data[size_column_name])
+        text = np.append(text, selected_data[settings['name_column']])
+        time_slice = dt.now()
+        print("assign {}:  {}".format(brick_name, dt.now()-time_slice))
+        # Wrap up
+        sample_size = len(selected_data)
+        current_length += sample_size
+    print("{} data points".format(current_length))
+    return x_data, y_data, c_data, s_data, text
+
+def get_sample_data(bricks_selected, display_count, 
+                    xaxis_column_name, yaxis_column_name, color_column_name, size_column_name, 
+                    criteria_dict, brick_column_details, settings, selected_columns, data, brick_data_types, data_counts):
+    """ Returns subsample of data within brick
+
+    Pre-allocate memory, slice, and insert.
+    """
+    # Setup
+    has_caxis = color_column_name in selected_columns
+    has_saxis = size_column_name in selected_columns
+    # Allocate Memory for Data
+    x_data = np.empty(display_count)  # X-Axis
+    y_data = np.empty(display_count)  # Y-Axis
+    if has_caxis:  c_data = np.empty(display_count)  # Color
+    else:          c_data = np.array([])
+    if has_saxis:  s_data = np.empty(display_count)  # Size
+    else:          s_data = np.array([])
+    # TODO: Read Itemsize from column definition in FITS file
+    # TODO: Allow non-char description
+    text = np.empty(display_count, dtype='<U{}'.format(100))  # Description
+    #text = np.empty(display_count, dtype='|S{}'.format(100))  # Description
+    t1 = dt.now()
+    # Create new random sample
+    print("resampling with {} points".format(display_count))
+    # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
+    brick_usage = get_brick_usage(bricks_selected, criteria_dict, brick_column_details)
+    bricks_selected = [
+        brick for brick in bricks_selected 
+        if brick_usage[brick] > settings['min_brick_usage']
+    ]
+    brick_count = len(bricks_selected)  # Number of bricks
+    # Add Data to Array
+    current_length = 0
+    for ix, brick_i in enumerate(bricks_selected):
+        sample_size = round(display_count/brick_count)
+        # Fix uneven split by rounding, then fill remainder: introduces a skew in data
+        if ix == brick_count-1 and brick_count%2 == 1:
+            sample_size = int(display_count-current_length)
+            print("  adjustment done: {}".format(sample_size))
+        #select_points = getSampleIndices(sample_size, data_counts[brick_i])
+        #print("random:     {}".format(dt.now()-t1))
+        axis_name_list = [settings['name_column'], xaxis_column_name, yaxis_column_name]
+        if has_caxis:  axis_name_list.append(color_column_name)
+        if has_saxis:  axis_name_list.append(size_column_name)
+        selected_data = get_subsetdata(
+                data[brick_i],  # do NOT add ".data" as it will create a copy 
+                axis_name_list, 
+                sample_size=sample_size, 
+                brick_size=data_counts[brick_i],
+                criteria_dict=criteria_dict,
+                brick_use=brick_usage[brick_i],
+                max_fill_attempts=settings['max_fill_attempts'],
+                brick_data_types=brick_data_types)
+        print("  slice data: {}".format(dt.now()-t1))
+        x_data[current_length:current_length+sample_size] = selected_data[xaxis_column_name]
+        y_data[current_length:current_length+sample_size] = selected_data[yaxis_column_name]
+        if has_caxis:  
+            c_data[current_length:current_length+sample_size] = selected_data[color_column_name]
+        if has_saxis:  
+            s_data[current_length:current_length+sample_size] = selected_data[size_column_name]
+        print(selected_data[settings['name_column']].dtype)
+        text[current_length:current_length+sample_size] = selected_data[settings['name_column']]
+        print("  assign {}:  {}".format(brick_i, dt.now()-t1))
+        current_length += sample_size
+        t1 = dt.now()
+    return x_data, y_data, c_data, s_data, text
+
+def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_dict={}, brick_use=1, max_fill_attempts=1, brick_data_types={}):
+    """ 
+        Returns exact axis subset
+
+        TODO: 
+            Speed comparisons
+            Implement Dask
+    
+        References:
+            FITS IO (TableData) - http://docs.astropy.org/en/stable/io/fits/ 
+            FITS_rec has as base numpy.recarray, inherits all methods of numpy.ndarray
+            NumPy Structured Arrays - https://docs.scipy.org/doc/numpy/user/basics.rec.html
+            NumPy Recarray - https://docs.scipy.org/doc/numpy/reference/generated/numpy.recarray.html
+            NumPy Record - https://docs.scipy.org/doc/numpy/reference/generated/numpy.record.html 
+
+        FITS rec can be accessed with 
+            FITS_rec[col_name][point_idx_list]  ! Much faster !
+            FITS_rec[point_idx_list][col_name]
+
+        but NOT with
+            FITS_rec[point_idx_list][col_list]
+            FITS_rec[col_list][point_idx_list]
+            FITS_rec[[col_list]][point_idx_list]
+            FITS_rec[*col_list][point_idx_list]
+            FITS_rec[**col_list][point_idx_list]
+            FITS_rec[[*col_list]][point_idx_list]
+            
+            FITS_rec[col_tuple][point_idx_list]
+            FITS_rec[[col_tuple]][point_idx_list]
+            FITS_rec[*col_tuple][point_idx_list]
+            FITS_rec[[*col_tuple]][point_idx_list]
+            FITS_rec[col_name][point_idx_list]
+            
+            FITS_rec[col_list, point_idx_list]
+            FITS_rec[point_idx_list, col_list]
+    """
+    print("  Getting {} points".format(sample_size))
+    print(axis_name_list)
+    sufficient_data = False
+    selected_data = {}
+    if criteria_dict:
+        selected_data = {
+            axis_name:np.empty(sample_size, dtype=brick_data_types[axis_name])
+            for axis_name in axis_name_list
+        }
+    current_length = 0
+    slice_count = 0
+    while not sufficient_data:
+        # Slicing 
+        if criteria_dict:
+            # TODO: Better handling for this
+            if slice_count > max_fill_attempts:
+                sufficient_data = True
+            # Oversample by 1/brick_use.  e.g. 5% brick_use: (1/0.05 = 20)*sample_size
+            select_points = get_sample_indices(int(round(sample_size/brick_use)), brick_size)
+            new_data = slice_data(
+                brick_data.data[select_points],
+                criteria_dict,
+                axis_name_list)
+            data_size = min(sample_size-current_length, min(sample_size, len(new_data[axis_name_list[0]])))
+            try:
+                print("  new slice (got/wanted/queried): {:,}/{:,}/{:,}".format(
+                    len(new_data[axis_name_list[0]]), 
+                    sample_size,
+                    int(round(sample_size/brick_use))))
+            except:
+                pass
+            for axis_name in axis_name_list:
+                selected_data[axis_name][current_length:current_length+data_size] = new_data[axis_name][0:data_size]
+            current_length += data_size
+            slice_count += 1
+            # Check for sufficienct
+            if current_length >= sample_size:
+                sufficient_data = True
+        # Simple
+        else:
+            select_points = get_sample_indices(sample_size, brick_size)
+            selected_data = reduce_cols(brick_data.data[select_points], axis_name_list)
+            sufficient_data = True
+    # Return data
+    return selected_data
+
+####################################################################################
+
+
 ##################################################################################
 #   Slicing Data
 ##################################################################################
