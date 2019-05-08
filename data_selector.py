@@ -9,12 +9,14 @@ from memory_profiler import profile
 #   Slicing Data
 ##################################################################################
 def get_limits(bricks_selected, limit_dict, brick_column_details):
-    """ returns limits that are smaller than the limits in the selected bricks """
+    """ Return limits which are smaller than the brick limits """
     if limit_dict:
         brick_limits = {
             col_name:[ 
-                np.min([brick_column_details[brick][col_name]['min'] for brick in bricks_selected]),
-                np.max([brick_column_details[brick][col_name]['max'] for brick in bricks_selected])
+                np.min([brick_column_details[brick][col_name]['min'] 
+                        for brick in bricks_selected]),
+                np.max([brick_column_details[brick][col_name]['max'] 
+                        for brick in bricks_selected])
             ]
             for col_name in limit_dict.keys()
         }
@@ -34,7 +36,7 @@ def get_limits(bricks_selected, limit_dict, brick_column_details):
     return lim_dict
 
 def get_brick_usage(bricks_selected, limit_dict, brick_column_details):
-    """ returns dict with brick name and fraction of brick used """
+    """ Return dict of brick usage {brick_name:fractional_usage} """
     if limit_dict:
         brick_usage = {}
         for brick in bricks_selected:
@@ -50,7 +52,8 @@ def get_brick_usage(bricks_selected, limit_dict, brick_column_details):
                         limit_dict[col_name][0]
                     ]),
                     0])
-                brick_interval_size = brick_column_details[brick][col_name]['max']-brick_column_details[brick][col_name]['min']
+                brick_interval_size = (brick_column_details[brick][col_name]['max']
+                                      -brick_column_details[brick][col_name]['min'])
                 brick_col_usage.append(
                     intersection_size/brick_interval_size
                 )     
@@ -60,7 +63,7 @@ def get_brick_usage(bricks_selected, limit_dict, brick_column_details):
     return brick_usage
 
 def get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, min_usage):
-    """ return brick list that is above criteria """
+    """ Return brick list that is above criteria """
     # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
     brick_usage = get_brick_usage(bricks_selected, criteria_dict, brick_column_details)
     print("    brick_usage: ", brick_usage)
@@ -71,7 +74,7 @@ def get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, mi
     return bricks_selected
 
 def reduce_cols(data, axis_name_list, selection=0):
-    """ slice by axis name list """
+    """ Slice named array by axis name list """
     # TODO: testing other implementation
     t1 = time.time()
     if type(selection) != int:
@@ -95,15 +98,18 @@ def reduce_cols(data, axis_name_list, selection=0):
     return selection
 
 def get_within_limits(data, col_name, limits):
-    """ return boolean array of entries that are within limits """
+    """ Return boolean array, where elements are within limits """
     return np.logical_and(
         data[col_name] > limits[0], 
         data[col_name] < limits[1]
     )
 
 def slice_data(data, criteria_dict, axis_name_list=[], list_comp=True):
-    """ given data array, slice it and return 
-    criteria {'column_name':(min, max)}, return sliced """
+    """ Return sliced data as dictionary
+    
+    given named array, slice it according to (min,max) defined in criteria,
+    return dictionary of subarrays
+    """
     # Pass in Data reference
     #t1 = time.time()
     #data = data.data

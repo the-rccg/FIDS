@@ -167,7 +167,8 @@ slice_list = [
         #],
         style = {
             **slider_style,
-            'display': None
+            #'display': None
+            'display': 'none'
         }
     )
     for column_name in slice_col_list
@@ -232,8 +233,72 @@ if not settings['debug']:
 app.title = 'FITS Dashboard: {}'.format(settings['name'])
 
 dropdown_style = {
-        'padding': '3px'
+    'padding': '3px'
 }
+
+def create_formatter(axis_naming, axis_title):
+    """ Return collapsable formatting div """
+    return html.Details(
+                id='{}-formatting'.format(axis_naming),
+                children=[
+                    html.Summary(
+                        '{} Formatting'.format(axis_title),
+                        style={
+                            'font-size': '14px',
+                            'color': '#444',
+                            'padding': '0px 0px 0px 5px'
+                        }
+                    ),
+                    # Color-Axis: Linear vs. Log vs. Exp
+                    html.Div(
+                        [
+                            #html.H6('Scale:', style={'font-size':'12px', 'display':'inline-block', 'width':'50px'}),
+                            dcc.RadioItems(
+                                id='{}-type'.format(axis_naming),
+                                options=[
+                                    {'label': i, 'value': i} 
+                                        for i in ['Linear', 'Log()', 'e^()']
+                                ],
+                                value='Linear',
+                                labelStyle={
+                                    'display': 'inline-block',
+                                    'font-size': '14px'
+                                }
+                            )
+                        ], 
+                        style={
+                            'padding': '0px 0px 0px 15px',
+                            'width': '49%', 
+                            'display': 'inline-block'
+                        }
+                    ),
+                    # Color-Axis: Increasing vs. Decreasing
+                    html.Div(
+                        [
+                            dcc.RadioItems(
+                                id='{}-orientation'.format(axis_naming),
+                                options=[
+                                    {'label': i, 'value': i} 
+                                        for i in ['increasing', 'decreasing']
+                                ],
+                                value='increasing',
+                                labelStyle={
+                                    'display': 'inline-block',
+                                    'font-size': '14px'
+                                }
+                            )
+                        ], 
+                        style={
+                            'float': 'right',
+                            'display': 'inline-block',
+                            'padding':'0px 5px 0px 0px'  # Adjust right alignment
+                        }
+                    )
+                ],
+                style={
+                    'display': 'none'
+                }
+            )
 
 # Visual layout
 # TODO: Move "style"-img into CSS
@@ -297,53 +362,13 @@ app.layout = html.Div([
                             ],
                             value=settings['default_x_column']
                         ),
-                       html.Details([
-                            html.Summary(
-                                'X-Axis Formatting', 
-                                style={
-                                    'font-size': '13px',
-                                    'color': '#444',
-                                    'padding': '0px 0px 0px 7px'
-                                }
-                            ),
-                            # X-Axis: Linear vs. Log vs. Exp
-                            html.Div(
-                                [
-                                    dcc.RadioItems(
-                                        id='xaxis-type',
-                                        options=[
-                                            {'label': i, 'value': i} 
-                                                for i in ['Linear', 'Log()', 'e^()']
-                                        ],
-                                        value='Linear',
-                                        labelStyle={'display': 'inline-block'}
-                                    )
-                                ], 
-                                style={'float': 'left', 'display': 'inline-block'}
-                            ),
-                            # X-Axis: Increasing vs. Decreasing
-                            html.Div(
-                                [
-                                    dcc.RadioItems(
-                                        id='xaxis-orientation',
-                                        options=[
-                                            {'label': i, 'value': i} 
-                                                for i in ['increasing', 'decreasing']
-                                        ],
-                                        value='increasing',
-                                        labelStyle={'display': 'inline-block'}
-                                    )
-                                ], 
-                                style={
-                                        'float': 'right', 
-                                        'display': 'inline-block', 
-                                        'padding': '0px 5px 0px 0px'  # Adjust right alignment
-                                }
-                            )
-                       ])
+                        # X-Axis Formatting
+                        # TODO: Align heights between float (Y), and block (X)
+                        create_formatter('xaxis', 'X-Axis'),
                     ],
                     style={
-                        'width': '49%', 
+                        'width': '49.5%', 
+                        #'float': 'left',
                         'display': 'inline-block'
                     }
                 ),
@@ -360,62 +385,19 @@ app.layout = html.Div([
                             ],
                             value=settings['default_y_column']
                         ),
-                        html.Details([
-                            html.Summary(
-                                'Y-Axis Formatting', 
-                                style={
-                                    'font-size': '13px',
-                                    'color': '#444',
-                                    'padding': '0px 0px 0px 7px'
-                                }
-                            ),
-                            # Y-Axis: Linear vs. Log vs. Exp
-                            html.Div(
-                                [
-                                    #html.H6('Scale:', style={'font-size':'12px', 'display':'inline-block', 'width':'50px'}),
-                                    dcc.RadioItems(
-                                        id='yaxis-type',
-                                        options=[
-                                            {'label': i, 'value': i} 
-                                                for i in ['Linear', 'Log()', 'e^()']
-                                        ],
-                                        value='Linear',
-                                        labelStyle={'display': 'inline-block'}
-                                    )
-                                ], 
-                                style={'width': '49%', 'display': 'inline-block'}
-                            ),
-                            # Y-Axis: Increasing vs. Decreasing
-                            html.Div(
-                                [
-                                    dcc.RadioItems(
-                                        id='yaxis-orientation',
-                                        options=[
-                                            {'label': i, 'value': i} 
-                                                for i in ['increasing', 'decreasing']
-                                        ],
-                                        value='increasing',
-                                        labelStyle={'display': 'inline-block'}
-                                    )
-                                ], 
-                                style={
-                                        'float': 'right', 
-                                        'display': 'inline-block', 
-                                        'padding':'0px 5px 0px 0px'  # Adjust right alignment
-                                }
-                            )
-                        ]),
+                        # Y-Axis Formatting
+                        create_formatter('yaxis', 'Y-Axis'),
                     ],
                     style={
-                        'width': '49%', 
+                        'width': '49.5%', 
                         'float': 'right', 
                         'display': 'inline-block'
                     }
                 ),
-                # 4.3: Select Z-Axis ? 
+                # 4.3: Select Z-Axis ?
                 # TODO: 3D Graphing
             ],
-            style=dropdown_style 
+            style=dropdown_style
         ),
                         
         # Element 5: Color coding
@@ -428,10 +410,12 @@ app.layout = html.Div([
                         {'label': i, 'value': i} 
                             for i in selected_columns
                     ],
-                    value=None
+                    value=settings['default_color_column']
                 ),
+                # Color-Axis Formatting
+                create_formatter('caxis', 'Color-Axis'),
             ],
-            style=dropdown_style 
+            style=dropdown_style
         ),
                 
         # Element 6: Size coding
@@ -450,7 +434,7 @@ app.layout = html.Div([
             style=dropdown_style 
         ),
 
-        # Element 7: Add column slicors
+        # Element 7: Add column slice sliders
         html.Div(
             [
                 dcc.Dropdown(
@@ -475,35 +459,40 @@ app.layout = html.Div([
             dcc.Loading(
                 dcc.Graph(
                     id='indicator-graphic',
-                    #style={'responsive':'true'},
                     config={
                         #'responsive':True,  # Whether layout size changes with window size
                         #'showLink':True,  # Link bottom right to plotly chartstudio
                         #'sendData':True,  # Send Data to plotly chartstudio
                         #'editable':True,  # Allow editing of title, axis name, etc.
-                        'modeBarButtonsToRemove':['watermark', 'displaylogo'],
-                        'displaylogo':False,  # Display plotly logo?
-                        'showTips':True,
+                        'modeBarButtonsToRemove': ['watermark', 'displaylogo'],
+                        'displaylogo': False,  # Display plotly logo?
+                        'showTips': True,
                         'toImageButtonOptions':{
-                            'format':'svg',
-                            'filename':'image_FIDS'
+                            'format': 'svg',
+                            'filename': 'image_FIDS'
                         }
                     },
-                    style={'height':'inherit', 'width':'inherit'}
+                    style={
+                        'responsive': 'true',
+                        'height':'inherit', 
+                        'width':'inherit'
+                    }
                 ),
-
                 style={
-                        #'border': 'solid 1px #A2B1C6', 
-                        #'border-radius': '0px', 
-                        'padding': '3px', 
-                        'width': 'inherit',
-                        'height': 'inherit',
-                        #'resize': 'vertical',
-                        #'overflow': 'auto'
-                        #'margin-top': '20px'
+                    #'border': 'solid 1px #A2B1C6', 
+                    #'border-radius': '0px', 
+                    'padding': '3px', 
+                    'width': 'inherit',
+                    'height': 'inherit',
+                    #'resize': 'vertical',
+                    #'overflow': 'auto'
+                    #'margin-top': '20px'
                 }
             ),
-            style={'width':'inherit', 'height':'inherit'}
+            style={
+                'width': 'inherit', 
+                'height': 'inherit'
+            }
         ),
 
         # Download Section
@@ -527,8 +516,9 @@ app.layout = html.Div([
                             ),
                             html.A(
                                 html.Button(
-                                        'Download *SELECTED* Data', 
-                                        className='button-primary'),
+                                    'Download *SELECTED* Data', 
+                                    className='button-primary'
+                                ),
                                 id='download-selection',
                                 download="selected_data.csv",
                                 href="",
@@ -560,19 +550,29 @@ app.layout = html.Div([
                                         value=None,
                                         multi=False,
                                     ),
-                                    style={'width': '49%', 'display': 'inline-block'}
+                                    style={
+                                        'width': '49%', 
+                                        'display': 'inline-block'
+                                    }
                                 ),
                                 html.Div(
                                     html.A(
-                                        html.Button('Download *ENTIRE FILE*', 
-                                                    className='button-primary', type='button-primary'),
+                                        html.Button(
+                                            'Download *ENTIRE FILE*', 
+                                            className='button-primary', 
+                                            type='button-primary'
+                                        ),
                                         id='download-full-link',
                                         download="rawdata.fits",
                                         href="",
                                         target="_blank",
                                         style={'padding': '3px'}
                                     ),
-                                    style={'width': '49%', 'float': 'right', 'display': 'inline-block'}
+                                    style={
+                                        'width': '49%', 
+                                        'float': 'right', 
+                                        'display': 'inline-block'
+                                    }
                                 )
                             ])
                         ],
@@ -593,7 +593,7 @@ app.layout = html.Div([
                                 }
                             ),
                             html.Div(
-                                id = 'download_column_status',
+                                id='download_column_status',
                                 style={
                                     'padding':'0px 0px 0px 3px',
                                     'font-style':'italic'
@@ -633,7 +633,7 @@ app.layout = html.Div([
                         style={'padding': '3px'}
                     ),
                 ],
-                style = {
+                style={
                     'border': 'solid 1px #A2B1C6',
                     'border-radius': '5px',
                     'padding': '5px'
@@ -650,7 +650,8 @@ app.layout = html.Div([
         'border-radius': '5px', 
         'padding': '5px', 
         #'margin-top': '20px', 
-        'flex': '1 0 auto'}),
+        'flex': '1 0 auto'
+    }),
 
     # Element 11: Footer with links
     html.Div(
@@ -1089,6 +1090,7 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
     return selected_data
 ####################################################################################
 
+
 ####################################################################################
 #   Sliders 
 ####################################################################################
@@ -1103,8 +1105,8 @@ output_list = [
         [dash.dependencies.Input('column_slicer', 'value')]
         )
 def hide_unhide(criteria_show_list):
+    """ Return Div.styles to hide and unhide divs """
     # Hide all
-    #print("hide_unhide()")
     show_dict = {
         '{}_div'.format(column_name):{**slider_style, 'display': 'none'} 
         for column_name in slice_col_list
@@ -1130,7 +1132,7 @@ def hide_unhide(criteria_show_list):
     [dash.dependencies.Input('brick_selector', 'value')]
 )
 def update_slice_limits(bricks_selected):
-    """ update limits on sliders depending on bricks selected """
+    """ Update limits on sliders depending on bricks selected """
     #print("update_slice_limits")
     if bricks_selected:
         mins = [
@@ -1185,7 +1187,7 @@ def update_slice_limits(bricks_selected):
     ]
 )
 def update_slider_titles(*args):
-    """ update titles with limit values if applicable """
+    """ Update titles with limit values if applicable """
     # TODO: Handle arguments nicer than this hack
     bricks_selected = args[-1]
     args = args[:-1]
@@ -1209,6 +1211,32 @@ def update_slider_titles(*args):
     return new_titles
 
 ####################################################################################
+
+
+####################################################################################
+#   Axis Adjustments
+####################################################################################
+@app.callback(
+    [
+        dash.dependencies.Output('xaxis-formatting', 'style'),
+        dash.dependencies.Output('yaxis-formatting', 'style'),
+        dash.dependencies.Output('caxis-formatting', 'style')
+    ],
+    [
+        dash.dependencies.Input('xaxis-column', 'value'),
+        dash.dependencies.Input('yaxis-column', 'value'),
+        dash.dependencies.Input('color-column', 'value')
+    ]
+)
+def unhide_axis_formatter(xaxis_name, yaxis_name, caxis_name):
+    styles = [{'display': 'none'}, {'display': 'none'}, {'display': 'none'}]
+    if xaxis_name:
+        styles[0] = {'display': 'block'}
+    if yaxis_name:
+        styles[1] = {'display': 'block'}
+    if caxis_name:
+        styles[2] = {'display': 'block'}
+    return styles
 
 def get_axis_properties(axis_column_name, axis_type, axis_orientation):
     return {
@@ -1236,8 +1264,10 @@ update_graph_inputs = [
         dash.dependencies.Input('size-column', 'value'),
         dash.dependencies.Input('xaxis-type', 'value'),
         dash.dependencies.Input('yaxis-type', 'value'),
+        dash.dependencies.Input('caxis-type', 'value'),
         dash.dependencies.Input('xaxis-orientation', 'value'),
         dash.dependencies.Input('yaxis-orientation', 'value'),
+        dash.dependencies.Input('caxis-orientation', 'value'),
         dash.dependencies.Input('display_count_selection', 'value'),
         dash.dependencies.Input('brick_selector', 'value'),
         *slice_inputs
@@ -1247,8 +1277,8 @@ update_graph_inputs = [
     dash.dependencies.Output('indicator-graphic', 'figure'),
     update_graph_inputs)
 def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_column_name,
-                 xaxis_type, yaxis_type, 
-                 xaxis_orientation, yaxis_orientation,
+                 xaxis_type, yaxis_type, caxis_type,
+                 xaxis_orientation, yaxis_orientation, caxis_orientation,
                  display_count, bricks_selected, *args, **kwargs):
     """ update graph based on new selected variables """
     #print('args: ', args)
@@ -1306,6 +1336,12 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         np.exp(x_data, out=x_data)
     if yaxis_type == 'e^()':
         np.exp(y_data, out=y_data)
+    if caxis_type == 'e^()':
+        np.exp(c_data, out=c_data)
+        color_column_name = 'e^({})'.format(color_column_name)
+    elif caxis_type == 'Log()':
+        np.log(c_data, out=c_data)
+        color_column_name = 'Log({})'.format(color_column_name)
 
     # Format for sending  
     data_dic = {
@@ -1314,11 +1350,14 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
     }
     # Add color scale
     if has_caxis:
-        # Update Title
+        # Color Scales:  'Greys', 'YlGnBu', 'Greens', 'YlOrRd', 'Bluered', 'RdBu', 'Reds', 'Blues', 'Picnic', 'Rainbow', 'Portland', 'Jet', 'Hot', 'Blackbody', 'Earth', 'Electric', 'Viridis', 'Cividis'
         title += ' colored by {}'.format(color_column_name)
         # Set Color
         marker_properties['color'] = c_data
-        marker_properties['colorscale'] = settings['color_scale']  # 'Greys', 'YlGnBu', 'Greens', 'YlOrRd', 'Bluered', 'RdBu', 'Reds', 'Blues', 'Picnic', 'Rainbow', 'Portland', 'Jet', 'Hot', 'Blackbody', 'Earth', 'Electric', 'Viridis', 'Cividis'
+        if caxis_orientation == 'increasing':
+            marker_properties['colorscale'] = settings['color_scale']
+        else:
+            marker_properties['colorscale'] = settings['inv_color_scale']
         marker_properties['showscale'] = True
         marker_properties['colorbar'] = {'title':color_column_name}
     else:
@@ -1333,7 +1372,7 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
     if has_bricks:
         # Below title
         title = title + '<br><i>('+', '.join(sorted(bricks_selected))+')<i>'
-        # Subtitle Variant with Annotation (NOTE: Not alinabl with title)
+        # Subtitle Variant with Annotation (NOTE: Not alignable with title)
         #annotations.append({
         #    'text': '<i>('+', '.join(sorted(bricks_selected))+')</i>',
         #    'font': {
