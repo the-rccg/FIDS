@@ -1162,11 +1162,13 @@ def update_slider_titles(*args):
     for slider_col_name in slice_col_list:
         title = slider_col_name
         if slider_col_name in criteria:
+            # TODO: Make significant digits dependent on granularity of slider
             marks = get_marks(
                 criteria[slider_col_name],
                 certainty=settings["slider_number_certainty"], 
                 include_zero=False)
-            title += "  ({} - {})".format(
+            title = "{}  ({} - {})".format(
+                title,
                 *marks.values()
             )
         new_titles.append(title)
