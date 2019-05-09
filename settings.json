@@ -10,7 +10,7 @@
     "display_count_webgl_min": 12000,
     "display_count_granularity": 1000,
     "color_scale": "Bluered",
-    "inv_color_scale": "RdBu",
+    "inv_color_scale": "Blackbody",
     "marker_size": 10,
     "marker_opacity": 0.5,
     "default_file": "",

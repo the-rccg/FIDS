@@ -44,6 +44,7 @@ data = dict_of_files(filename_list)
 
 # Defining columns
 # TODO: Allow dictionary for renaming in dispaly
+# TODO: Read or allow import of UNITS. Maybe visual initialization as an app?
 column_names_file = sorted(settings['columns_to_use'])
 column_names_data = sorted(data[filename_list[0]].columns.names)
 def get_column_names(filename_list, column_names_file, column_names_data):
@@ -81,10 +82,11 @@ import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
 
+####################################################################################
+# Define Columns to be used
+####################################################################################
 
-####################################################################################
-#   Allow range slicing
-####################################################################################
+# Getting dtypes
 from io_tools import parse_datatype
 # Add column criteria selection
 def get_brick_data_types(data, filename_list):
@@ -96,15 +98,12 @@ def get_brick_data_types(data, filename_list):
 brick_data_types = get_brick_data_types(data, filename_list)
 allowed_types = ['>f8', '>i8', '<f8', '<i8']
 slice_col_list = [col_name for col_name in column_names if brick_data_types[col_name] in allowed_types][:17]
-#pprint([(col_name, brick_data_types[col_name]) for col_name in column_names if brick_data_types[col_name] in allowed_types][17:21])
-#print("Slice Col List: ", slice_col_list)
 
+# Get Brick Details
 from io_tools import load_json
 brick_column_details = load_json('brick_column_details.json', savepath=settings['savepath'])
-
 # Cut out bricks without computed details
 filename_list = [filename for filename in filename_list if filename in brick_column_details.keys()]
-
 column_details = {
     col_name: {
         'min': parse_datatype(np.min([brick_column_details[brick_name][col_name]['min'] for brick_name in filename_list])),
@@ -115,6 +114,7 @@ column_details = {
 slice_col_list = [col for col in slice_col_list if col in column_details.keys()]
 print("Reduced Slice Col List: ", slice_col_list)
 
+# Set up range sliders
 from slider_magic import get_range_slider, get_log_range_slider
 
 slider_style = {
@@ -206,16 +206,6 @@ external_stylesheets = ['assets/FIDS.css']
 external_userbase = [
     ['hello', 'world']
 ]
-
-app = dash.Dash(settings['name'], external_stylesheets=external_stylesheets)
-if not settings['debug']:
-    auth = dash_auth.BasicAuth(
-        app,
-        external_userbase
-    )
-
-app.title = 'FITS Dashboard: {}'.format(settings['name'])
-
 dropdown_style = {
     'padding': '3px'
 }
@@ -283,6 +273,17 @@ def create_formatter(axis_naming, axis_title):
                     'display': 'none'
                 }
             )
+
+app = dash.Dash(settings['name'], external_stylesheets=external_stylesheets)
+
+# Allow Login User:Password
+if not settings['debug']:
+    auth = dash_auth.BasicAuth(
+        app,
+        external_userbase
+    )
+
+app.title = 'FITS Dashboard: {}'.format(settings['name'])
 
 # Visual layout
 # TODO: Move "style"-img into CSS
@@ -1147,6 +1148,7 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         'x': x_data,
         'y': y_data
     }
+    # TODO: Add Color and Size labels before "text" as they cannot be included in hoverinfo right now
     # Add color scale
     if has_caxis:
         # Color Scales:  'Greys', 'YlGnBu', 'Greens', 'YlOrRd', 'Bluered', 'RdBu', 'Reds', 'Blues', 'Picnic', 'Rainbow', 'Portland', 'Jet', 'Hot', 'Blackbody', 'Earth', 'Electric', 'Viridis', 'Cividis'
