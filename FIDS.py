@@ -127,29 +127,27 @@ slider_style = {
 # List of: DIV( DIV( title ), DIV( slider ) ) 
 slice_list = [
     html.Div(
+        # TODO: Fix Log Sliders
+        # TODO: Automatically recognize who needs log scale
+        #get_log_range_slider(
+        #    column_name,
+        #    column_details,
+        #    id_given = '{}'.format(column_name),
+        #    granularity = settings['selection_granularity']
+        #)
         get_range_slider(
                 column_name, 
-                id_given = '{}'.format(column_name), 
-                col_range = [
+                id_given='{}'.format(column_name), 
+                col_range=[
                     column_details[column_name]['min'], 
                     column_details[column_name]['max']
-                ], 
-                marks = None, 
-                granularity = settings['selection_granularity'],
-                certainty = settings["slider_number_certainty"]
+                ],
+                marks=None,
+                granularity=settings['selection_granularity'],
+                certainty=settings["slider_number_certainty"]
         ),
-        id = '{}_div'.format(column_name), 
-        #children = [
-            # TODO: Fix Log Sliders
-            # TODO: Automatically recognize who needs log scale
-            #get_log_range_slider(
-            #    column_name,
-            #    column_details,
-            #    id_given = '{}'.format(column_name),
-            #    granularity = settings['selection_granularity']
-            #)    
-        #],
-        style = {
+        id='{}_div'.format(column_name), 
+        style={
             **slider_style,
             #'display': None
             'display': 'none'
@@ -167,8 +165,8 @@ debug_elements = []
 if debug:
     debug_elements.append(
         html.Div(
-            id = 'debug-container',
-            children = [
+            id='debug-container',
+            children=[
                 # Status
                 html.Div(
                     id = 'debug-status',
@@ -177,7 +175,7 @@ if debug:
                 # Shutdown Button
                 html.Button(
                     'shutdown app', 
-                    id = 'shutdown-button',
+                    id='shutdown-button',
                     className='button-primary', 
                     type='button-primary'
                 ),
@@ -187,10 +185,9 @@ if debug:
     )
     # style
     debug_elements = [
-        html.Div([
-            *debug_elements,
-            ],
-            style = { 
+        html.Div(
+            debug_elements,
+            style={ 
                 'border': 'solid 1px #A2B1C6', 
                 'border-radius': '5px', 
                 'padding': '5px', 
@@ -203,6 +200,8 @@ if debug:
 # DASH Application
 ####################################################################################
 external_stylesheets = ['assets/FIDS.css']
+
+# TODO: Move to external file
 external_userbase = [
     ['hello', 'world']
 ]
@@ -210,11 +209,13 @@ dropdown_style = {
     'padding': '3px'
 }
 
-def create_formatter(axis_naming, axis_title):
+def create_formatter(axis_naming, axis_title, column_list):
     """ Return collapsable formatting div """
+    # TODO: Move to table from float/inline-block
     return html.Details(
                 id='{}-formatting'.format(axis_naming),
                 children=[
+                    # 1: Summary
                     html.Summary(
                         '{} Formatting'.format(axis_title),
                         style={
@@ -223,49 +224,90 @@ def create_formatter(axis_naming, axis_title):
                             'padding': '0px 0px 0px 5px'
                         }
                     ),
-                    # Color-Axis: Linear vs. Log vs. Exp
+                    # 2: Wrapper for Axis Adjustments
                     html.Div(
                         [
-                            #html.H6('Scale:', style={'font-size':'12px', 'display':'inline-block', 'width':'50px'}),
-                            dcc.RadioItems(
-                                id='{}-type'.format(axis_naming),
-                                options=[
-                                    {'label': i, 'value': i} 
-                                        for i in ['Linear', 'Log()', 'e^()']
-                                ],
-                                value='Linear',
-                                labelStyle={
+                            # 2.1: Linear vs. Log vs. Exp
+                            html.Div(
+                                dcc.Dropdown(
+                                    placeholder='Axis scaling',
+                                    id='{}-type'.format(axis_naming),
+                                    options=[
+                                        {'label': i, 'value': i} 
+                                            for i in ['Linear', 'Log Scale', 'Ln()', 'Log10()', 'e^()', '10^()']
+                                    ],
+                                    value='Linear'
+                                ), 
+                                style={
+                                    'width': '49%', 
+                                    'display': 'inline-block'
+                                }
+                            ),
+                            # 2.2: Increasing vs. Decreasing
+                            html.Div(
+                                dcc.Dropdown(
+                                    placeholder='Axis orientation',
+                                    id='{}-orientation'.format(axis_naming),
+                                    options=[
+                                        {'label': i, 'value': i} 
+                                            for i in ['increasing', 'decreasing']
+                                    ],
+                                    value='increasing',
+                                ),
+                                style={
+                                    'float': 'right',
+                                    'width': '49%',
                                     'display': 'inline-block',
-                                    'font-size': '14px'
+                                }
+                            ),
+                            # 2.3: Combined plotting
+                            # Alternatively, pop in after selecting first column on axis?
+                            html.Div(
+                                [
+                                    # 2.3.1: Operator
+                                    html.Div(
+                                        dcc.Dropdown(
+                                            placeholder='Operator',
+                                            id='{}-operator'.format(axis_naming),
+                                            options=[
+                                                {'label':i, 'value':i}
+                                                    for i in ['+', '-', '/', 'x']
+                                            ],
+                                            value=''
+                                        ),
+                                        style={
+                                            'width': '70px',
+                                            'display': 'table-cell',
+                                            'vertical-align': 'top'
+                                        }
+                                    ),
+                                    # 2.3.2: 2nd Column
+                                    html.Div(
+                                        dcc.Dropdown(
+                                            placeholder='Column',
+                                            id='{}-combined-column'.format(axis_naming),
+                                            options=[
+                                                {'label': i, 'value': i} 
+                                                    for i in column_list
+                                            ],
+                                            value=''
+                                        ),
+                                        style={
+                                            'display': 'table-cell',
+                                            'width': 'auto',
+                                            'vertical-align': 'top',
+                                            'padding': '0px 0px 0px 5px'
+                                        }
+                                    )
+                                ],
+                                style={
+                                    'display': 'table', 
+                                    'width':'100%'
                                 }
                             )
-                        ], 
+                        ],
                         style={
                             'padding': '0px 0px 0px 15px',
-                            'width': '49%', 
-                            'display': 'inline-block'
-                        }
-                    ),
-                    # Color-Axis: Increasing vs. Decreasing
-                    html.Div(
-                        [
-                            dcc.RadioItems(
-                                id='{}-orientation'.format(axis_naming),
-                                options=[
-                                    {'label': i, 'value': i} 
-                                        for i in ['increasing', 'decreasing']
-                                ],
-                                value='increasing',
-                                labelStyle={
-                                    'display': 'inline-block',
-                                    'font-size': '14px'
-                                }
-                            )
-                        ], 
-                        style={
-                            'float': 'right',
-                            'display': 'inline-block',
-                            'padding':'0px 5px 0px 0px'  # Adjust right alignment
                         }
                     )
                 ],
@@ -275,6 +317,9 @@ def create_formatter(axis_naming, axis_title):
             )
 
 app = dash.Dash(settings['name'], external_stylesheets=external_stylesheets)
+# Use Local Script and CSS
+app.scripts.config.serve_locally = True
+app.css.config.serve_locally = True
 
 # Allow Login User:Password
 if not settings['debug']:
@@ -292,37 +337,33 @@ app.layout = html.Div([
         
         # Element 1: Data File Selector
         html.Div(
-            [
-                dcc.Dropdown(
-                    id='brick_selector',
-                    placeholder='Select FITS files...',
-                    options=[
-                        {'label': '{}'.format(i), 'value': i} 
-                            for i in filename_list
-                    ],
-                    value=None,
-                    multi=True
-                )
-            ],
+            dcc.Dropdown(
+                id='brick_selector',
+                placeholder='Select FITS files...',
+                options=[
+                    {'label': '{}'.format(i), 'value': i} 
+                        for i in filename_list
+                ],
+                value=None,
+                multi=True
+            ),
             style=dropdown_style 
         ),
 
         # Element 2: Data Amount Selector
         html.Div(
-            [
-                dcc.Slider(
-                    id='display_count_selection',
-                    #placeholder='',
-                    min=0,
-                    max=display_count_max,
-                    value=display_count,
-                    step=display_count_step,
-                    marks={
-                        0: '0', 
-                        display_count_max: "{:,}".format(display_count_max)
-                    }
-                )
-            ],
+            dcc.Slider(
+                id='display_count_selection',
+                #placeholder='',
+                min=0,
+                max=display_count_max,
+                value=display_count,
+                step=display_count_step,
+                marks={
+                    0: '0', 
+                    display_count_max: "{:,}".format(display_count_max)
+                }
+            ),
             style={**slider_style, 'height':'34px'}
             #html.Div(id="selection-container")
         ),
@@ -337,7 +378,7 @@ app.layout = html.Div([
                 # 4.1: Select X-Axis
                 html.Div(
                     [
-                        # X-Axis Column
+                        # 4.1.1: X-Axis Column
                         dcc.Dropdown(
                             id='xaxis-column',
                             placeholder='Select X-Axis...',
@@ -347,9 +388,9 @@ app.layout = html.Div([
                             ],
                             value=settings['default_x_column']
                         ),
-                        # X-Axis Formatting
+                        # 4.1.2 X-Axis Formatting
                         # TODO: Align heights between float (Y), and block (X)
-                        create_formatter('xaxis', 'X-Axis'),
+                        create_formatter('xaxis', 'X-Axis', selected_columns),
                     ],
                     style={
                         'width': '49.5%', 
@@ -360,7 +401,7 @@ app.layout = html.Div([
                 # 4.2: Select Y-Axis
                 html.Div(
                     [
-                        # Y-Axis Column
+                        # 4.2.1 Y-Axis Column
                         dcc.Dropdown(
                             id='yaxis-column',
                             placeholder='Select Y-Axis...',
@@ -370,8 +411,8 @@ app.layout = html.Div([
                             ],
                             value=settings['default_y_column']
                         ),
-                        # Y-Axis Formatting
-                        create_formatter('yaxis', 'Y-Axis'),
+                        # 4.2.2 Y-Axis Formatting
+                        create_formatter('yaxis', 'Y-Axis', selected_columns),
                     ],
                     style={
                         'width': '49.5%', 
@@ -388,6 +429,7 @@ app.layout = html.Div([
         # Element 5: Color coding
         html.Div(
             [
+                # 5.1 Color Column
                 dcc.Dropdown(
                     id='color-column',
                     placeholder='Select Color-Axis...',
@@ -397,8 +439,8 @@ app.layout = html.Div([
                     ],
                     value=settings['default_color_column']
                 ),
-                # Color-Axis Formatting
-                create_formatter('caxis', 'Color-Axis'),
+                # 5.2 Color-Axis Formatting
+                create_formatter('caxis', 'Color-Axis', selected_columns),
             ],
             style=dropdown_style
         ),
@@ -415,6 +457,7 @@ app.layout = html.Div([
                     ],
                     value=None
                 ),
+                # TODO: Scaling sizes
             ],
             style=dropdown_style 
         ),
@@ -436,6 +479,7 @@ app.layout = html.Div([
             style=dropdown_style
         ),
 
+        # Element 7.1: Sliders
         *slice_list,
 
         
@@ -480,17 +524,20 @@ app.layout = html.Div([
             }
         ),
 
-        # Download Section
+        # Element 8: Download Section
         html.Details([
+            # 8.1 Collapsable Header
             html.Summary(
                 'Download Data', 
                 style={'padding': '0px 0px 0px 5px'}
             ),  
+            # 8.2 Download Section
             html.Div(
                 [
-                    # Element 8: Download Selection
+                    # 8.2.1: Download Selection
                     html.Div(
                         [
+                            # 8.2.1.1 Description
                             html.Div(
                                 'Download data selected on graph:',
                                 style={
@@ -499,6 +546,7 @@ app.layout = html.Div([
                                     'font-weight': 'bold'
                                 }
                             ),
+                            # 8.2.1.2 Button
                             html.A(
                                 html.Button(
                                     'Download *SELECTED* Data', 
@@ -512,9 +560,10 @@ app.layout = html.Div([
                             ),
                         ]
                     ), 
-                    # Element 9: Download entire brick
+                    # 8.2.2: Download entire brick
                     html.Div(
                         [
+                            # 8.2.2.1 Description
                             html.Div(
                                 'Download entire brick:',
                                 style={
@@ -523,7 +572,9 @@ app.layout = html.Div([
                                     'font-weight': 'bold'
                                 }
                             ),
+                            # 8.2.2.2 File download
                             html.Div([
+                                # 8.2.2.1 Select File
                                 html.Div(
                                     dcc.Dropdown(
                                         id='download_file',
@@ -540,6 +591,7 @@ app.layout = html.Div([
                                         'display': 'inline-block'
                                     }
                                 ),
+                                # 8.2.2.1 Download Button
                                 html.Div(
                                     html.A(
                                         html.Button(
@@ -566,9 +618,10 @@ app.layout = html.Div([
                             'margin-top': '5px'
                         }
                     ),
-                    # Element 10a: Select columns to download
+                    # 8.2.3 Select columns to download
                     html.Div(
                         [
+                            # 8.2.3.1 Description
                             html.Div(
                                 'Download all data fitting the criteria:',
                                 style={
@@ -577,6 +630,7 @@ app.layout = html.Div([
                                     'font-weight': 'bold'
                                 }
                             ),
+                            # 8.2.3.2 Status Bar
                             html.Div(
                                 id='download_column_status',
                                 style={
@@ -584,6 +638,7 @@ app.layout = html.Div([
                                     'font-style':'italic'
                                 }
                             ),
+                            # 8.2.3.3 Column Selector
                             html.Div(
                                 dcc.Dropdown(
                                     id='download_columns',
@@ -603,7 +658,7 @@ app.layout = html.Div([
                             'margin-top': '5px'
                         }
                     ),
-                    # Element 10b: Download all data in criteria
+                    # 8.2.4 Download all data in criteria
                     html.A(
                         html.Button(
                             'Download *ALL IN CRITERIA*',
@@ -626,7 +681,7 @@ app.layout = html.Div([
             ),
         ]),
 
-        # Debug Elements
+        # Element 9: Debug Tools
         *debug_elements,
 
     ], 
@@ -640,38 +695,38 @@ app.layout = html.Div([
 
     # Element 11: Footer with links
     html.Div(
-        [
-            html.H6(
-                [
-                    html.A(
-                        'FIDS: Flexible Imaging and Display System, ',
-                        id='repository_link',
-                        href='https://www.github.com/the-rccg/FIDS',
-                        target='_blank',
-                        style={
-                            'color': '#444',#rgb(116, 101, 130)',
-                            'text-decoration': 'none',
-                            'letter-spacing': '0.03em'
-                        }
-                    ),
-                    html.A(
-                        'provided by Ruprecht-Karls Universitaet Heidelberg',
-                        id='university_link',
-                        href='https://www.uni-heidelberg.de/',
-                        target='_blank',
-                        style={
-                            'color': '#444',#'rgb(116, 101, 130)',
-                            'text-decoration': 'none',
-                            'letter-spacing': '0.03em'
-                        }
-                    )
-                ],
-                style={
-                    'font-size':'14px', 
-                    'padding':'5px'
-                }
-            )
-        ], 
+        html.H6(
+            [
+                # 11.1 Link to FIDS
+                html.A(
+                    'FIDS: Flexible Imaging and Display System, ',
+                    id='repository_link',
+                    href='https://www.github.com/the-rccg/FIDS',
+                    target='_blank',
+                    style={
+                        'color': '#444',#rgb(116, 101, 130)',
+                        'text-decoration': 'none',
+                        'letter-spacing': '0.03em'
+                    }
+                ),
+                # 11.2 Link to University
+                html.A(
+                    'provided by Ruprecht-Karls Universitaet Heidelberg',
+                    id='university_link',
+                    href='https://www.uni-heidelberg.de/',
+                    target='_blank',
+                    style={
+                        'color': '#444',#'rgb(116, 101, 130)',
+                        'text-decoration': 'none',
+                        'letter-spacing': '0.03em'
+                    }
+                )
+            ],
+            style={
+                'font-size':'14px', 
+                'padding':'5px'
+            }
+        ), 
         className='footer', 
         style={'flex-shrink': '0'}
     ),
@@ -822,6 +877,7 @@ def args_to_criteria(bricks_selected, args):
                     for col_name in slice_col_list]
     ])
 def download_criteria(n_clicks_timestamp, bricks_selected, download_columns, *args):
+    """ Download all points in selected files that fall under criteria """
     print("  processing... {}".format(download_columns))
     #ctx = dash.callback_context
     #if not ctx.triggered:
@@ -1011,6 +1067,8 @@ def update_slider_titles(*args):
 ####################################################################################
 #   Axis Adjustments
 ####################################################################################
+from data_selector import get_axis_data, format_two_columns
+
 @app.callback(
     [
         dash.dependencies.Output('xaxis-formatting', 'style'),
@@ -1036,7 +1094,7 @@ def unhide_axis_formatter(xaxis_name, yaxis_name, caxis_name):
 def get_axis_properties(axis_column_name, axis_type, axis_orientation):
     return {
         'title': axis_column_name,
-        'type': 'log' if axis_type == 'Log()' else 'linear', 
+        'type': 'log' if axis_type == 'Log Scale' else 'linear',  # TODO: Log base ___???
         'autorange': 'reversed' if axis_orientation == 'decreasing' else True,
         'automargin': True
     }
@@ -1056,13 +1114,16 @@ update_graph_inputs = [
         dash.dependencies.Input('xaxis-column', 'value'),
         dash.dependencies.Input('yaxis-column', 'value'),
         dash.dependencies.Input('color-column', 'value'),
-        dash.dependencies.Input('size-column', 'value'),
+        dash.dependencies.Input('size-column',  'value'),
         dash.dependencies.Input('xaxis-type', 'value'),
         dash.dependencies.Input('yaxis-type', 'value'),
         dash.dependencies.Input('caxis-type', 'value'),
         dash.dependencies.Input('xaxis-orientation', 'value'),
         dash.dependencies.Input('yaxis-orientation', 'value'),
         dash.dependencies.Input('caxis-orientation', 'value'),
+        dash.dependencies.Input('xaxis-combined-column', 'value'),
+        dash.dependencies.Input('yaxis-combined-column', 'value'),
+        dash.dependencies.Input('caxis-combined-column', 'value'),
         dash.dependencies.Input('display_count_selection', 'value'),
         dash.dependencies.Input('brick_selector', 'value'),
         *slice_inputs
@@ -1070,16 +1131,25 @@ update_graph_inputs = [
 
 @app.callback(
     dash.dependencies.Output('indicator-graphic', 'figure'),
-    update_graph_inputs)
-def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_column_name,
+    update_graph_inputs,
+    [
+        dash.dependencies.State('xaxis-operator', 'value'),
+        dash.dependencies.State('yaxis-operator', 'value'),
+        dash.dependencies.State('caxis-operator', 'value')
+    ])
+def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
                  xaxis_type, yaxis_type, caxis_type,
                  xaxis_orientation, yaxis_orientation, caxis_orientation,
-                 display_count, bricks_selected, *args, **kwargs):
+                 xaxis_second_column, yaxis_second_column, caxis_second_column,
+                 display_count, bricks_selected, *args):
     """ update graph based on new selected variables """
     #print('args: ', args)
     #print('kwargs: ', kwargs)
 
-    criteria_dict = args_to_criteria(bricks_selected, args)
+    # Extract Operators from args
+    xaxis_operator, yaxis_operator, caxis_operator = args[-3], args[-2], args[-1]
+    # Extract Criteria from args
+    criteria_dict = args_to_criteria(bricks_selected, args[:-3])
 
     # Brick selection
     print("  Brick {} selected".format(bricks_selected))
@@ -1095,32 +1165,44 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
     t0 = dt.now()
     # Check for valid axis
     has_bricks = (type(bricks_selected) is list)
-    has_xaxis = (xaxis_column_name in selected_columns)
-    has_yaxis = (yaxis_column_name in selected_columns)
-    has_caxis = (color_column_name in selected_columns)
-    has_saxis = (size_column_name  in selected_columns)
+    has_xaxis = (xaxis_name in selected_columns)
+    has_yaxis = (yaxis_name in selected_columns)
+    has_caxis = (caxis_name in selected_columns)
+    has_saxis = (saxis_name in selected_columns)
     # Require X and Y to plot
     if has_bricks and has_xaxis and has_yaxis:
-        # Create Title
-        title = '{} vs. {}'.format(xaxis_column_name, yaxis_column_name)
-
         # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
         bricks_selected = get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, min_usage=0)
-        
-        if display_count:
-            # Subsample
-            x_data, y_data, c_data, s_data, text = get_sample_data(
-                bricks_selected, display_count, 
-                xaxis_column_name, yaxis_column_name, color_column_name, size_column_name, 
+        # Column list
+        axis_name_list = [settings['name_column'],
+                          xaxis_name, yaxis_name, caxis_name, saxis_name,
+                          xaxis_second_column, yaxis_second_column, caxis_second_column]
+        axis_name_list = [axis_name for axis_name in axis_name_list if axis_name]
+        print(axis_name_list)
+
+        # Subsample
+        if display_count:    
+            return_data = get_sample_data(
+                bricks_selected, display_count, axis_name_list, 
                 criteria_dict, brick_column_details,
-                settings, selected_columns, data, brick_data_types, data_counts)
+                selected_columns, data, 
+                brick_data_types, data_counts, settings)
+        # ALL DATA
         else:
-            # ALL DATA
-            x_data, y_data, c_data, s_data, text = get_all_data(
+            return_data = get_all_data(
                 bricks_selected, display_count, 
-                xaxis_column_name, yaxis_column_name, color_column_name, size_column_name, 
+                axis_name_list,
                 criteria_dict, brick_column_details,
-                settings, selected_columns, data)
+                selected_columns, data)
+        # Unpack
+        text_name,  text   = get_axis_data(return_data, settings['name_column'])
+        xaxis_name, x_data = get_axis_data(return_data, xaxis_name, xaxis_operator, xaxis_second_column)
+        yaxis_name, y_data = get_axis_data(return_data, yaxis_name, yaxis_operator, yaxis_second_column)
+        caxis_name, c_data = get_axis_data(return_data, caxis_name, caxis_operator, caxis_second_column)
+        saxis_name, s_data = get_axis_data(return_data, saxis_name)
+        
+        # Create Title
+        title = format_two_columns('vs.', xaxis_name, yaxis_name)
         
     else:
         x_data = np.array([])
@@ -1132,16 +1214,26 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
     print("  getting data: {}".format(t1-t0))
 
     # Process Data
-    if xaxis_type == 'e^()':
-        np.exp(x_data, out=x_data)
-    if yaxis_type == 'e^()':
-        np.exp(y_data, out=y_data)
-    if caxis_type == 'e^()':
-        np.exp(c_data, out=c_data)
-        color_column_name = 'e^({})'.format(color_column_name)
-    elif caxis_type == 'Log()':
-        np.log(c_data, out=c_data)
-        color_column_name = 'Log({})'.format(color_column_name)
+    def adjust_axis_type(axis_type, axis_name, axis_data):
+        """  """
+        if axis_type == 'e^()':
+            np.exp(axis_data, out=axis_data)
+            axis_name = 'e^({})'.format(axis_name)
+        elif axis_type == '10^()':
+            np.power(axis_data, 10, out=axis_data)
+            axis_name = '10^({})'.format(axis_name)
+        elif axis_type == 'Ln()':
+            np.log(axis_data, out=axis_data)
+            axis_name = 'Ln({})'.format(axis_name)
+        elif axis_type == 'Log10()':
+            np.log10(axis_data, out=axis_data)
+            axis_name = 'Log10({})'.format(axis_name)
+        return axis_type, axis_name, axis_data
+    # Axis Adjustments
+    xaxis_type, xaxis_name, x_data = adjust_axis_type(xaxis_type, xaxis_name, x_data)
+    yaxis_type, yaxis_name, y_data = adjust_axis_type(yaxis_type, yaxis_name, y_data)
+    if has_caxis:
+        caxis_type, caxis_name, c_data = adjust_axis_type(caxis_type, caxis_name, c_data)
 
     # Format for sending  
     data_dic = {
@@ -1152,7 +1244,7 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
     # Add color scale
     if has_caxis:
         # Color Scales:  'Greys', 'YlGnBu', 'Greens', 'YlOrRd', 'Bluered', 'RdBu', 'Reds', 'Blues', 'Picnic', 'Rainbow', 'Portland', 'Jet', 'Hot', 'Blackbody', 'Earth', 'Electric', 'Viridis', 'Cividis'
-        title += ' colored by {}'.format(color_column_name)
+        title += ' colored by {}'.format(caxis_name)
         # Set Color
         marker_properties['color'] = c_data
         if caxis_orientation == 'increasing':
@@ -1160,14 +1252,16 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         else:
             marker_properties['colorscale'] = settings['inv_color_scale']
         marker_properties['showscale'] = True
-        marker_properties['colorbar'] = {'title':color_column_name}
+        marker_properties['colorbar'] = {'title':caxis_name}
     else:
         marker_properties['color'] = 1  # Recolor after color axis removed
     if has_saxis:
         # Update Title
-        title += ' sized by {}'.format(size_column_name)
+        title += ' sized by {}'.format(saxis_name)
         # Set Size
         marker_properties['size'] = scale_max(s_data)*20
+    else:
+        marker_properties['size'] = settings['marker_size']  # Resize after color axis removed
     # Finish Title
     annotations = []
     if has_bricks:
@@ -1190,6 +1284,7 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         #    'yanchor': 'bottom'
         #})
 
+    # Use WebGL for large datasets
     if data_dic['x'].shape[0] > settings["display_count_webgl_min"]:
         print("using go.Scattergl")
         plot_fig = go.Scattergl(
@@ -1198,6 +1293,7 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
             mode = 'markers',
             marker = marker_properties
         )
+    # Otherwise stick with standard
     else:
         plot_fig = go.Scatter(
             **data_dic,
@@ -1212,17 +1308,14 @@ def update_graph(xaxis_column_name, yaxis_column_name, color_column_name, size_c
         'layout': go.Layout(
             title=title,
             annotations=annotations,
-            xaxis=get_axis_properties(xaxis_column_name, xaxis_type, xaxis_orientation),
-            yaxis=get_axis_properties(yaxis_column_name, yaxis_type, yaxis_orientation),
+            xaxis=get_axis_properties(xaxis_name, xaxis_type, xaxis_orientation),
+            yaxis=get_axis_properties(yaxis_name, yaxis_type, yaxis_orientation),
             autosize=True,
             margin={'l': 40, 'b': 60, 't': 80, 'r': 0},
             hovermode='closest'
         )
     }
 
-
-
-app.scripts.config.serve_locally = True
 
 if __name__ == '__main__':
     app.run_server(debug=settings['debug'], host=settings['host'], port=settings['port'])# host='129.206.102.157')

@@ -6,7 +6,7 @@ import time
 from memory_profiler import profile
 
 def get_sample_indices(sample_size, total_size):
-    """ returns data points for the subsample in the range
+    """ Return data points for the subsample in the range
 
     Timed Tests:   data_count = 100,000,000;  sample_size = 100,000;
         926 us  np.random.randint(low=0, high=data_count+1, size=sample_size) 
@@ -14,7 +14,7 @@ def get_sample_indices(sample_size, total_size):
          85 ms  random.sample(range(data_count), sample_size)
           6 s   np.random.choice(data_count, size=sample_size, replace=False, p=None)
     """
-    # note: allows multiple identical values, hence n<=num_points, but orders mag faster
+    # NOTE: allows multiple identical values, hence n<=num_points, but computes faster
     select_points = np.random.randint(
                         low=0, high=total_size, 
                         size=sample_size
@@ -26,86 +26,74 @@ def get_sample_indices(sample_size, total_size):
 ####################################################################################
 
 def get_all_data(bricks_selected, display_count, 
-                 xaxis_column_name, yaxis_column_name, color_column_name, size_column_name, 
-                 criteria_dict, brick_column_details, settings, selected_columns, data):
+                 axis_name_list,
+                 criteria_dict, brick_column_details, selected_columns, data):
     """ Return all data in bricks which conform by criteria
 
     Iteratively appends data from bricks
     """
-    # Setup
-    has_caxis = color_column_name in selected_columns
-    has_saxis = size_column_name in selected_columns
-    x_data = np.array([])  # X-Axis
-    y_data = np.array([])  # Y-Axis
-    c_data = np.array([])  # Color
-    s_data = np.array([])  # Sizevbn
-    text   = np.array([])  # Text
+    # 0. Setup
+    return_data = {
+        axis_name:np.array({})
+        for axis_name in axis_name_list
+    }
     current_length = 0
-    # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
+    # 1. Adjust for Brick usage: Only use above min, oversample proportionally, etc.
     bricks_selected = get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, min_usage=0)
     for brick_name in bricks_selected:
-        axis_name_list = [settings['name_column'], xaxis_column_name, yaxis_column_name]
-        if has_caxis:  axis_name_list.append(color_column_name)
-        if has_saxis:  axis_name_list.append(size_column_name)
-        # Slicing data once reads it once, making it faster than using index
+        # 2. Slicing data once reads it once, making it faster than using index
         t1 = dt.now()
         selected_data = slice_data(
                 data[brick_name].data,  # Pass immutable for reference to limit copies
                 criteria_dict,
                 axis_name_list) 
-        time_slice = dt.now()
-        print("slice data: {}".format(time_slice-t1))
-        t1 = dt.now()
+        print("  slice data: {}".format(dt.now()-t1))
+        # 3. Assign
         # TODO: Test memory and CPU for np.append vs np.concat
         # NOTE: Creates copies. Length unknown, hence no better option. 
-        x_data = np.append(x_data, selected_data[xaxis_column_name])
-        y_data = np.append(y_data, selected_data[yaxis_column_name])
-        if has_caxis:  
-            c_data = np.append(c_data, selected_data[color_column_name])
-        if has_saxis:  
-            s_data = np.append(s_data, selected_data[size_column_name])
-        text = np.append(text, selected_data[settings['name_column']])
-        time_slice = dt.now()
-        print("assign {}:  {}".format(brick_name, dt.now()-time_slice))
-        # Wrap up
-        sample_size = len(selected_data)
+        t1 = dt.now()
+        for axis_name in axis_name_list:
+            return_data[axis_name] = np.append(
+                return_data[axis_name], 
+                selected_data[axis_name]
+            )
+        print("  assign {}:  {}".format(brick_name, dt.now()-t1))
+        # 4. Wrap up
+        sample_size = selected_data[axis_name_list[0]].shape[0]
         current_length += sample_size
-    print("{} data points".format(current_length))
-    return x_data, y_data, c_data, s_data, text
+    print("  data points: {}".format(current_length))
+    return return_data
 
 def get_sample_data(bricks_selected, display_count, 
-                    xaxis_column_name, yaxis_column_name, color_column_name, size_column_name, 
-                    criteria_dict, brick_column_details, settings, selected_columns, data, brick_data_types, data_counts):
-    """ Returns subsample of data within brick
+                    axis_name_list,
+                    criteria_dict, brick_column_details, 
+                    selected_columns, data, 
+                    brick_data_types, data_counts, settings):
+    """ Return subsample of data within brick
 
     Pre-allocate memory, slice, and insert.
     """
-    # Setup
-    has_caxis = color_column_name in selected_columns
-    has_saxis = size_column_name in selected_columns
-    # Allocate Memory for Data
-    x_data = np.empty(display_count)  # X-Axis
-    y_data = np.empty(display_count)  # Y-Axis
-    if has_caxis:  c_data = np.empty(display_count)  # Color
-    else:          c_data = np.array([])
-    if has_saxis:  s_data = np.empty(display_count)  # Size
-    else:          s_data = np.array([])
+    print("  resampling with {} points".format(display_count))
+    # 0. Allocate memory
+    t1 = dt.now()
+    return_data = {
+        '{}'.format(col_name): np.empty(display_count)
+        for col_name in axis_name_list
+    }
     # TODO: Read Itemsize from column definition in FITS file
     # TODO: Allow non-char description
-    text = np.empty(display_count, dtype='<U{}'.format(100))  # Description
+    return_data[settings['name_column']] = np.empty(display_count, dtype='<U{}'.format(100))  # Description
     #text = np.empty(display_count, dtype='|S{}'.format(100))  # Description
-    t1 = dt.now()
-    # Create new random sample
-    print("resampling with {} points".format(display_count))
-    # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
+    print("  memory allocation: {}".format(t1 - dt.now()))
+    # 1. Adjust for Brick usage: Only use above min, oversample proportionally, etc.
     brick_usage = get_brick_usage(bricks_selected, criteria_dict, brick_column_details)
     bricks_selected = [
         brick for brick in bricks_selected 
         if brick_usage[brick] > settings['min_brick_usage']
     ]
     brick_count = len(bricks_selected)  # Number of bricks
-    # Add Data to Array
     current_length = 0
+    t1 = dt.now()
     for ix, brick_i in enumerate(bricks_selected):
         sample_size = round(display_count/brick_count)
         # Fix uneven split by rounding, then fill remainder: introduces a skew in data
@@ -114,9 +102,7 @@ def get_sample_data(bricks_selected, display_count,
             print("  adjustment done: {}".format(sample_size))
         #select_points = getSampleIndices(sample_size, data_counts[brick_i])
         #print("random:     {}".format(dt.now()-t1))
-        axis_name_list = [settings['name_column'], xaxis_column_name, yaxis_column_name]
-        if has_caxis:  axis_name_list.append(color_column_name)
-        if has_saxis:  axis_name_list.append(size_column_name)
+        # 2. Slice Data
         selected_data = get_subsetdata(
                 data[brick_i],  # do NOT add ".data" as it will create a copy 
                 axis_name_list, 
@@ -127,22 +113,19 @@ def get_sample_data(bricks_selected, display_count,
                 max_fill_attempts=settings['max_fill_attempts'],
                 brick_data_types=brick_data_types)
         print("  slice data: {}".format(dt.now()-t1))
-        x_data[current_length:current_length+sample_size] = selected_data[xaxis_column_name]
-        y_data[current_length:current_length+sample_size] = selected_data[yaxis_column_name]
-        if has_caxis:  
-            c_data[current_length:current_length+sample_size] = selected_data[color_column_name]
-        if has_saxis:  
-            s_data[current_length:current_length+sample_size] = selected_data[size_column_name]
+        # 3. Assign Data
+        for axis_name in axis_name_list:
+            return_data[axis_name][current_length:current_length+sample_size] = selected_data[axis_name]
+        # Look at dtype....
         print(selected_data[settings['name_column']].dtype)
-        text[current_length:current_length+sample_size] = selected_data[settings['name_column']]
         print("  assign {}:  {}".format(brick_i, dt.now()-t1))
         current_length += sample_size
         t1 = dt.now()
-    return x_data, y_data, c_data, s_data, text
+    return return_data
 
 def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_dict={}, brick_use=1, max_fill_attempts=1, brick_data_types={}):
     """ 
-        Returns exact axis subset
+        Return exact axis subset
 
         TODO: 
             Speed comparisons
@@ -178,6 +161,7 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
     """
     print("  Getting {} points".format(sample_size))
     print(axis_name_list)
+    # 0. Setup: Data
     sufficient_data = False
     selected_data = {}
     if criteria_dict:
@@ -187,14 +171,16 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
         }
     current_length = 0
     slice_count = 0
-    while not sufficient_data:
-        # Slicing 
+    # 1. Get Data
+    while not sufficient_data: 
+        # Criteria Based Slicing
         if criteria_dict:
             # TODO: Better handling for this
             if slice_count > max_fill_attempts:
                 sufficient_data = True
-            # Oversample by 1/brick_use.  e.g. 5% brick_use: (1/0.05 = 20)*sample_size
+            # 2. Oversample by 1/brick_use.  e.g. 5% brick_use: (1/0.05 = 20)*sample_size
             select_points = get_sample_indices(int(round(sample_size/brick_use)), brick_size)
+            # 3. Get data
             new_data = slice_data(
                 brick_data.data[select_points],
                 criteria_dict,
@@ -216,7 +202,9 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
                 sufficient_data = True
         # Simple
         else:
+            # 2. Sample
             select_points = get_sample_indices(sample_size, brick_size)
+            # 3. Get data
             selected_data = reduce_cols(brick_data.data[select_points], axis_name_list)
             sufficient_data = True
     # Return data
@@ -225,9 +213,68 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
 ####################################################################################
 
 
-##################################################################################
+####################################################################################
+#   Unpacking Data
+####################################################################################
+
+def extract_common_subset(string_one, string_two):
+    """ extract the common subset of strings, lists, arrays, etc. """
+    idx = 0
+    for i in range(min(len(string_one), len(string_two))):
+        if string_one[i] == string_two[i]:
+            idx += 1
+        else:
+            break
+    return string_one[:i], string_one[i:], string_two[i:]
+
+def extract_common_subwords(string_one, string_two):
+    """ only cut by words """
+    string_list_one = string_one.split(" ")
+    string_list_two = string_two.split(" ")
+    common, sub_string_one, sub_string_two = extract_common_subset(string_list_one, string_list_two)
+    return " ".join(common), " ".join(sub_string_one), " ".join(sub_string_two)
+
+def format_two_columns(binding, column_one, column_two, bracketed=False):
+    """ format two columns together """
+    common, string_one, string_two = extract_common_subwords(
+            column_one.replace("_", " "), 
+            column_two.replace("_", " ")
+    )
+    if bracketed:
+        if common:
+            common += ' '
+        return '{}[{} {} {}]'.format(common, string_one, binding, string_two)
+    else:
+        if common:
+            common += ':  '
+        return '{}{} {} {}'.format(common, string_one, binding, string_two)
+
+def get_axis_data(data, axis_one_name, axis_operator='', axis_two_name=''):
+    """ return the adjusted axis and formatted name """
+    if (not axis_one_name):
+        return '', np.array([])
+    elif (not axis_operator) or (not axis_two_name):
+        return axis_one_name.replace("_", " "), data[axis_one_name]
+    else:
+        if axis_operator == '+':
+            ret_axis_name = format_two_columns("+", axis_one_name, axis_two_name, bracketed=True)
+            return ret_axis_name, (data[axis_one_name] + data[axis_two_name])
+        elif axis_operator == '-':
+            ret_axis_name = format_two_columns("-", axis_one_name, axis_two_name, bracketed=True)
+            return ret_axis_name, (data[axis_one_name] - data[axis_two_name])
+        elif axis_operator == '/':
+            ret_axis_name = format_two_columns("/", axis_one_name, axis_two_name, bracketed=True)
+            return ret_axis_name, (data[axis_one_name] / data[axis_two_name])
+        elif axis_operator == 'x':
+            ret_axis_name = format_two_columns("$\times$", axis_one_name, axis_two_name, bracketed=True)
+            return ret_axis_name, (data[axis_one_name] * data[axis_two_name])
+
+####################################################################################
+
+
+####################################################################################
 #   Slicing Data
-##################################################################################
+####################################################################################
 def get_limits(bricks_selected, limit_dict, brick_column_details):
     """ Return limits which are smaller than the brick limits """
     if limit_dict:
@@ -355,11 +402,12 @@ def slice_data(data, criteria_dict, axis_name_list=[], list_comp=True):
         t2 = time.time()
         print("    cycle {:.2f}s".format(t2-t1))
     return reduce_cols(data, axis_name_list, selection)
-##################################################################################
+
+####################################################################################
 # No longer used...
 
 def get_slice_idx(data, axis_name_list, criteria_dict):
-    """ given criteria {'column_name':(min, max)}, return sliced """
+    """ Return sliced, given criteria {'column_name':(min, max)} """
     # Bulk slicing
     #print(criteria_dict.items())
     #t1 = time.time()
@@ -372,7 +420,7 @@ def get_slice_idx(data, axis_name_list, criteria_dict):
     return selection
 
 def get_slice_idx2(data, axis_name_list, criteria_dict):
-    """ given criteria {'column_name':(min, max)}, return sliced """
+    """ Return sliced, given criteria {'column_name':(min, max)} """
     # Individual slicing for more efficient computation
     #t1 = time.time()
     selection = np.array([])#np.ones(data.data.shape[0], dtype=bool)
