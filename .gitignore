@@ -8,6 +8,7 @@ venv
 .env
 _backup
 local/*
+*-Adler*
 
 ### JupyterNotebook ###
 .ipynb_checkpoints
@@ -399,3 +400,4 @@ healthchecksdb
 # End of https://www.gitignore.io/api/linux,visualstudiocode,jupyternotebook,jupyternotebooks,visualstudio
 
 # Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
+FIDS-Adler.py

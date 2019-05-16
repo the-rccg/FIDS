@@ -893,7 +893,7 @@ def get_selected_criteria(n_clicks, selected_data, xaxis_name, yaxis_name, caxis
     # Option 2: Curve
     elif 'lassoPoints' in selected_data.keys():
         # Create vertices
-        vertices = list(zip(selected_data['lassoPoints']['x'], selected_data['lassoPoints']['y']))
+        vertices = np.array(list(zip(selected_data['lassoPoints']['x'], selected_data['lassoPoints']['y'])))
         #pprint(vertices)
         # Select relevant bricks
         xmin, ymin = vertices.min(0)
