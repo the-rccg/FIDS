@@ -20,7 +20,7 @@
     "display_count_default": 4000,
     "selection_granularity": 100,
     "min_brick_usage": 0.05,
-    "max_fill_attempts": 100,
+    "max_fill_attempts": 20,
     "slider_number_certainty": 2,
     "port": 80,
     "host":"127.0.0.1",

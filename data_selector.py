@@ -2,8 +2,10 @@
 import numpy as np
 from datetime import datetime as dt
 import time
+from numba import jit
 
 from memory_profiler import profile
+
 
 def get_sample_indices(sample_size, total_size):
     """ Return data points for the subsample in the range
@@ -25,16 +27,15 @@ def get_sample_indices(sample_size, total_size):
 #   Getting Data
 ####################################################################################
 
-def get_all_data(bricks_selected, display_count, 
-                 axis_name_list,
-                 criteria_dict, brick_column_details, selected_columns, data):
+def get_all_data(bricks_selected, axis_name_list, criteria_dict, 
+                 brick_column_details, data):
     """ Return all data in bricks which conform by criteria
 
     Iteratively appends data from bricks
     """
     # 0. Setup
     return_data = {
-        axis_name:np.array({})
+        axis_name:np.array([])
         for axis_name in axis_name_list
     }
     current_length = 0
@@ -64,11 +65,8 @@ def get_all_data(bricks_selected, display_count,
     print("  data points: {}".format(current_length))
     return return_data
 
-def get_sample_data(bricks_selected, display_count, 
-                    axis_name_list,
-                    criteria_dict, brick_column_details, 
-                    selected_columns, data, 
-                    brick_data_types, data_counts, settings):
+def get_sample_data(bricks_selected, display_count, axis_name_list, criteria_dict, 
+                    brick_column_details, data, brick_data_types, data_counts, settings):
     """ Return subsample of data within brick
 
     Pre-allocate memory, slice, and insert.
@@ -77,11 +75,12 @@ def get_sample_data(bricks_selected, display_count,
     # 0. Allocate memory
     t1 = dt.now()
     return_data = {
-        '{}'.format(col_name): np.empty(display_count)
+        '{}'.format(col_name): np.empty(display_count, dtype=brick_data_types[col_name])
         for col_name in axis_name_list
     }
     # TODO: Read Itemsize from column definition in FITS file
     # TODO: Allow non-char description
+    # TODO: FIX UNICODE ERROR! ONLY OCCURS IN SLICING
     return_data[settings['name_column']] = np.empty(display_count, dtype='<U{}'.format(100))  # Description
     #text = np.empty(display_count, dtype='|S{}'.format(100))  # Description
     print("  memory allocation: {}".format(t1 - dt.now()))
@@ -115,7 +114,13 @@ def get_sample_data(bricks_selected, display_count,
         print("  slice data: {}".format(dt.now()-t1))
         # 3. Assign Data
         for axis_name in axis_name_list:
-            return_data[axis_name][current_length:current_length+sample_size] = selected_data[axis_name]
+            sample_size = selected_data[axis_name].shape[0]
+            #print(return_data[axis_name].dtype, brick_data_types[axis_name], selected_data[axis_name].dtype, data[brick_i].columns.dtype.fields[axis_name])
+            #print(axis_name, sample_size)
+            try:
+                return_data[axis_name][current_length:current_length+sample_size] = selected_data[axis_name]
+            except:
+                return_data[axis_name] = np.append(return_data[axis_name],selected_data[axis_name])
         # Look at dtype....
         print(selected_data[settings['name_column']].dtype)
         print("  assign {}:  {}".format(brick_i, dt.now()-t1))
@@ -161,20 +166,20 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
     """
     print("  Getting {} points".format(sample_size))
     print(axis_name_list)
-    # 0. Setup: Data
+    # 0. Setup
     sufficient_data = False
-    selected_data = {}
-    if criteria_dict:
-        selected_data = {
-            axis_name:np.empty(sample_size, dtype=brick_data_types[axis_name])
-            for axis_name in axis_name_list
-        }
     current_length = 0
     slice_count = 0
     # 1. Get Data
     while not sufficient_data: 
         # Criteria Based Slicing
         if criteria_dict:
+            # 1. Allocate memory
+            selected_data = {
+                axis_name:np.empty(sample_size, dtype=brick_data_types[axis_name])
+                for axis_name in axis_name_list
+            }
+            #selected_data[settings['name_column']] = np.empty(sample_size, dtype='<U{}'.format(100))  # Description
             # TODO: Better handling for this
             if slice_count > max_fill_attempts:
                 sufficient_data = True
@@ -272,6 +277,23 @@ def get_axis_data(data, axis_one_name, axis_operator='', axis_two_name=''):
 ####################################################################################
 
 
+# Process Data
+def adjust_axis_type(axis_type, axis_name, axis_data):
+    """ adjust arrays by type """
+    if axis_type == 'e^()':
+        np.exp(axis_data, out=axis_data)
+        axis_name = 'e^({})'.format(axis_name)
+    elif axis_type == '10^()':
+        np.power(axis_data, 10, out=axis_data)
+        axis_name = '10^({})'.format(axis_name)
+    elif axis_type == 'Ln()':
+        np.log(axis_data, out=axis_data)
+        axis_name = 'Ln({})'.format(axis_name)
+    elif axis_type == 'Log10()':
+        np.log10(axis_data, out=axis_data)
+        axis_name = 'Log10({})'.format(axis_name)
+    return axis_type, axis_name, axis_data
+
 ####################################################################################
 #   Slicing Data
 ####################################################################################
@@ -364,6 +386,7 @@ def reduce_cols(data, axis_name_list, selection=0):
     #    selection[:,i] = data[axis_name]
     return selection
 
+#@jit(nopython=True, parallel=True)
 def get_within_limits(data, col_name, limits):
     """ Return boolean array, where elements are within limits """
     return np.logical_and(
@@ -394,6 +417,7 @@ def slice_data(data, criteria_dict, axis_name_list=[], list_comp=True):
     else:
         t1 = time.time()
         selection = np.array([])#np.ones(data.data.shape[0], dtype=bool)
+        # TODO: Order by smallest fraction first to reduce Trues
         for col_name, limits in criteria_dict.items():
             if selection.shape[0] < 2:
                 selection = get_within_limits(data, col_name, limits)

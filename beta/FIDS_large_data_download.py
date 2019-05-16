@@ -816,15 +816,6 @@ from polygon_selection import get_data_in_polygon
 
 from flask import session
 
-def update_interval(data, key, min_two, max_two):
-    if key in data.keys():
-        new_min = np.max(min_two, data[key][0])
-        new_max = np.min(max_two, data[key][1])
-    else:
-        new_min = min_two
-        new_max = max_two
-    return new_min, new_max
-
 @app.callback(
     dash.dependencies.Output('download-all-in-selection', 'href'),
     [
@@ -848,17 +839,72 @@ def update_interval(data, key, min_two, max_two):
         *slice_states
     ]
 )
+def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, saxis_name,
+                   xaxis_two_name, yaxis_two_name, caxis_two_name,
+                   xaxis_operator, yaxis_operator, 
+                   xaxis_second_name, yaxis_second_name,
+                   bricks_selected, download_columns, *args):
+    pprint(request)
+    pprint(request.args.to_dict())
+    pprint(request.environ)
+    pprint(request.cookies)
+    pprint(session)
+    if not selected_data:
+        return ""
+    criteria_dict = args_to_criteria(bricks_selected, args) 
+    if bricks_selected:
+        bricks_selected = ",".join(bricks_selected)
+    if download_columns:
+        download_columns = ",".join(download_columns)
+    parameters = [
+        'n_clicks={}'.format(n_clicks),
+        'selected_data={}'.format(selected_data),
+        'xaxis_name={}'.format(xaxis_name),
+        'yaxis_name={}'.format(yaxis_name),
+        'caxis_name={}'.format(caxis_name),
+        'saxis_name={}'.format(saxis_name),
+        'xaxis_two_name={}'.format(xaxis_two_name), 
+        'yaxis_two_name={}'.format(yaxis_two_name), 
+        'caxis_two_name={}'.format(caxis_two_name),
+        'xaxis_operator={}'.format(xaxis_operator), 
+        'yaxis_operator={}'.format(yaxis_operator), 
+        'xaxis_second_name={}'.format(xaxis_second_name), 
+        'yaxis_second_name={}'.format(yaxis_second_name),
+        'bricks_selected={}'.format(bricks_selected), 
+        'download_columns={}'.format(download_columns), 
+        *['{}={}-{}'.format(col, *criteria_dict[col]) for col in criteria_dict.keys()]
+    ]
+    return '/dash/selected_download?'+"&".join(parameters)
+
+@app.server.route('/dash/selected_download') 
+def download_selection():
+    variables = request.args.to_dict()
+    # Split out min/max from sliders again
+    slider_values = []
+    for key in variables.keys():
+        if '-' in variables[key]:
+            slider_values.append(variables[key].split('-'))
+            del variables[key]
+        if "," in variables[key]:
+            variables[key] = variables[key].split(",")
+    values = [val for val in variables.values()]
+    return_data = get_selected_criteria(*values, *slider_values)
+
+    return send_file(pd.DataFrame(return_data).to_csv(),
+                     mimetype='text/csv',
+                     attachment_filename='selected_criteria_data.csv',
+                     as_attachment=True)
+
+
+
+
 # Only Executed on click
 def get_selected_criteria(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, saxis_name,
                           xaxis_two_name, yaxis_two_name, caxis_two_name,
                           xaxis_operator, yaxis_operator, 
                           xaxis_second_name, yaxis_second_name,
                           bricks_selected, download_columns, *args, **kwargs):
-    """ Extract vertices from selection and sets them as CSV download 
-    
-    NOTE: Large datasets exceed maximum href link length 
-          and send_file will have to be used in the future
-    """
+    """ Extract vertices from selection and sets them as CSV download """
     # Option 0: No Click
     if (not n_clicks):
         return None
@@ -878,14 +924,14 @@ def get_selected_criteria(n_clicks, selected_data, xaxis_name, yaxis_name, caxis
         x_interval = selected_data['range']['x']
         y_interval = selected_data['range']['y']
         # Use interval selection
-        criteria_dict[xaxis_name] = update_interval(
-            criteria_dict, xaxis_name, 
-            np.min(x_interval), np.max(x_interval)
-        )
-        criteria_dict[yaxis_name] = update_interval(
-            criteria_dict, yaxis_name, 
-            np.min(y_interval), np.max(y_interval)
-        )
+        criteria_dict[xaxis_name] = [
+            np.max(np.min(x_interval), criteria_dict[xaxis_name][0]),
+            np.min(np.max(x_interval), criteria_dict[xaxis_name][1])
+        ]
+        criteria_dict[yaxis_name] = [
+            np.max(np.min(y_interval), criteria_dict[yaxis_name][0]),
+            np.min(np.max(y_interval), criteria_dict[yaxis_name][1])
+        ]
         return_data = get_all_data(
             bricks_selected, axis_name_list, criteria_dict, 
             brick_column_details, data
@@ -893,9 +939,24 @@ def get_selected_criteria(n_clicks, selected_data, xaxis_name, yaxis_name, caxis
     # Option 2: Curve
     elif 'lassoPoints' in selected_data.keys():
         # Create vertices
-        vertices = list(zip(selected_data['lassoPoints']['x'], selected_data['lassoPoints']['y']))
+        prel_vertices = list(zip(selected_data['lassoPoints']['x'], selected_data['lassoPoints']['y']))
+        pprint(prel_vertices)
+        # Reduce vertices
+        #vertices = []
+        #for idx in range(1, len(prel_vertices)-2):
+        #    if   (prel_vertices[idx][0] == prel_vertices[idx+1][0]) \
+        #          and (prel_vertices[idx-1][0] == prel_vertices[idx][0]):
+        #        continue
+        #    elif (prel_vertices[idx][1] == prel_vertices[idx+1][1]) \
+        #          and (prel_vertices[idx-1][1] == prel_vertices[idx][1]):
+        #        continue
+        #    else:
+        #        vertices.append(prel_vertices[idx])
+        #vertices.append(prel_vertices[-1])
         #pprint(vertices)
+        #print(len(prel_vertices), len(vertices))
         # Select relevant bricks
+        vertices = np.array(prel_vertices)
         xmin, ymin = vertices.min(0)
         xmax, ymax = vertices.max(0)
         if xaxis_name in criteria_dict.keys():
@@ -918,9 +979,9 @@ def get_selected_criteria(n_clicks, selected_data, xaxis_name, yaxis_name, caxis
 
     print("  get selection data: {}".format(dt.now()-t0))
     # Convert to CSV and Return
-    csv_string = "data:text/csv;charset=utf-8,%EF%BB%BF" + urllib.parse.quote(pd.DataFrame(return_data).to_csv(), encoding="utf-8")
-    print("  CSV String Length: {:,}".format(len(csv_string)))
-    return csv_string
+    #csv_string = "data:text/csv;charset=utf-8,%EF%BB%BF" + urllib.parse.quote(pd.DataFrame(return_data).to_csv(), encoding="utf-8")
+    #print("  CSV String Length: {:,}".format(len(csv_string)))
+    return return_data#csv_string
 
 ####################################################################################
 # Download Selection
