@@ -82,6 +82,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
 
+
 ####################################################################################
 # Columns: Use, Slice, etc.
 ####################################################################################
@@ -217,12 +218,22 @@ dropdown_style = {
 
 def add_explanation(obj, title=""):
     """ Wrap a DCC object with an explanation on mouse-over """
+    # Inherit "title" from child
     if not title:
         try:
             title = obj.placeholder
         except:
             title = "??"
-    return html.Abbr(obj, title=title)
+    # Inherit "style" from child
+    try:
+        base_style = obj.style
+    except:
+        base_style = {}
+    return html.Abbr(obj, title=title, style={**base_style, 'border': 'none', 'text-decoration': 'none'})
+
+def Dropdown(*args, **kwargs):
+    """ wrap all Dropdowns with an explanation """
+    return add_explanation(dcc.Dropdown(*args, **kwargs))
 
 def create_formatter(axis_naming, axis_title, column_list):
     """ Return collapsable formatting div """
@@ -244,8 +255,7 @@ def create_formatter(axis_naming, axis_title, column_list):
                         [
                             # 2.1: Linear vs. Log vs. Exp
                             html.Div(
-                                add_explanation(
-                                dcc.Dropdown(
+                                Dropdown(
                                     placeholder='Axis scaling',
                                     id='{}-type'.format(axis_naming),
                                     options=[
@@ -253,7 +263,6 @@ def create_formatter(axis_naming, axis_title, column_list):
                                             for i in ['Linear', 'Log Scale', 'Ln()', 'Log10()', 'e^()', '10^()']
                                     ],
                                     value='Linear'
-                                )
                                 ), 
                                 style={
                                     'width': '49%', 
@@ -262,7 +271,7 @@ def create_formatter(axis_naming, axis_title, column_list):
                             ),
                             # 2.2: Increasing vs. Decreasing
                             html.Div(
-                                dcc.Dropdown(
+                                Dropdown(
                                     placeholder='Axis orientation',
                                     id='{}-orientation'.format(axis_naming),
                                     options=[
@@ -283,7 +292,7 @@ def create_formatter(axis_naming, axis_title, column_list):
                                 [
                                     # 2.3.1: Operator
                                     html.Div(
-                                        dcc.Dropdown(
+                                        Dropdown(
                                             placeholder='Operator',
                                             id='{}-operator'.format(axis_naming),
                                             options=[
@@ -300,7 +309,7 @@ def create_formatter(axis_naming, axis_title, column_list):
                                     ),
                                     # 2.3.2: 2nd Column
                                     html.Div(
-                                        dcc.Dropdown(
+                                        Dropdown(
                                             placeholder='Column',
                                             id='{}-combined-column'.format(axis_naming),
                                             options=[
@@ -354,8 +363,7 @@ app.layout = html.Div([
         
         # Element 1: Data File Selector
         html.Div(
-            add_explanation(
-            dcc.Dropdown(
+            Dropdown(
                 id='brick_selector',
                 placeholder='Select FITS files...',
                 options=[
@@ -363,7 +371,6 @@ app.layout = html.Div([
                         for i in filename_list
                 ],
                 multi=True
-            )
             ),
             style=dropdown_style 
         ),
@@ -397,7 +404,7 @@ app.layout = html.Div([
                 html.Div(
                     [
                         # 4.1.1: X-Axis Column
-                        dcc.Dropdown(
+                        Dropdown(
                             id='xaxis_column',
                             placeholder='Select X-Axis...',
                             options=[
@@ -420,7 +427,7 @@ app.layout = html.Div([
                 html.Div(
                     [
                         # 4.2.1 Y-Axis Column
-                        dcc.Dropdown(
+                        Dropdown(
                             id='yaxis_column',
                             placeholder='Select Y-Axis...',
                             options=[
@@ -448,7 +455,7 @@ app.layout = html.Div([
         html.Div(
             [
                 # 5.1 Color Column
-                dcc.Dropdown(
+                Dropdown(
                     id='caxis_column',
                     placeholder='Select Color-Axis...',
                     options=[
@@ -466,7 +473,7 @@ app.layout = html.Div([
         # Element 6: Size coding
         html.Div(
             [
-                dcc.Dropdown(
+                Dropdown(
                     id='saxis_column',
                     placeholder='Select Size-Axis...',
                     options=[
@@ -482,7 +489,7 @@ app.layout = html.Div([
         # Element 7: Add column slice sliders
         html.Div(
             [
-                dcc.Dropdown(
+                Dropdown(
                     id='column_slicer',
                     placeholder='Select fields to slice on...',
                     options=[
@@ -566,7 +573,7 @@ app.layout = html.Div([
                             html.Div([
                                 # 8.2.3.1 Select File
                                 html.Div(
-                                    dcc.Dropdown(
+                                    Dropdown(
                                         id='download_file',
                                         placeholder='Select file to download...',
                                         options=[
@@ -614,10 +621,9 @@ app.layout = html.Div([
                         [
                             # 8.2.4.1 Description
                             html.Div(
-                                html.Abbr(
+                                add_explanation(
                                     'Download all data fitting the criteria:',
-                                    title="Download all data points that fall within the criteria of sliders, selection, columns graphed and columns selected additionally",
-                                    style={'border': 'none', 'text-decoration': 'none'}
+                                    title="Download all data points that fall within the criteria of sliders, selection, columns graphed and columns selected additionally"
                                 ),
                                 style={
                                     'padding': '3px 20px 0px 3px',
@@ -636,7 +642,7 @@ app.layout = html.Div([
                             html.Div([
                                 # 8.2.4.3 Column Selector
                                 html.Div(
-                                    dcc.Dropdown(
+                                    Dropdown(
                                         id='download_columns',
                                         placeholder='Select fields to download...',
                                         options=[
@@ -652,24 +658,27 @@ app.layout = html.Div([
                                     }
                                 ),
                                 # 8.2.3 Download all data in criteria
-                                html.A(
-                                    html.Button(
-                                        'Download *BY CRITERIA*',
-                                        id='criteria_download_button',
-                                        className='button-primary', 
-                                        type='button-primary',
-                                        n_clicks=0
+                                add_explanation(
+                                    html.A(
+                                        html.Button(
+                                            'Download *BY CRITERIA*',
+                                            id='criteria_download_button',
+                                            className='button-primary', 
+                                            type='button-primary',
+                                            n_clicks=0
+                                        ),
+                                        id='download-criteria-link',
+                                        #download="within_criteria_data.csv",
+                                        href="",
+                                        target="_blank",
+                                        style={
+                                            'padding': '3px',
+                                            'display': 'table-cell',
+                                            'width': '70px'
+                                        }
                                     ),
-                                    id='download-criteria-link',
-                                    #download="within_criteria_data.csv",
-                                    href="",
-                                    target="_blank",
-                                    style={
-                                        'padding': '3px',
-                                        'display': 'table-cell',
-                                        'width': '70px'
-                                    }
-                                ),
+                                    title="Download all data points that fall within the criteria of sliders, selection, columns graphed and columns selected additionally"
+                                )
                             ],
                             style={
                                 'display': 'table',
@@ -770,9 +779,10 @@ if debug:
         return ret_str
 
 
-def hide_unhide_div(truth_statement, base_style={}, debug=False):
+def hide_unhide_div(truth_statement, base_style={}, debug=False, show='block'):
+    """ Return style with display if true """
     if truth_statement or debug:
-        return {**base_style, 'display':'block'}
+        return {**base_style, 'display':show}
     else:
         return {**base_style, 'display':'none'}
 
@@ -788,9 +798,6 @@ from datetime import datetime as dt
 
 from flask import session
 
-#def get_vertices(selected_data):
-#    vertices = None
-#    return vertices
 
 def args_to_criteria(bricks_selected, args):
     """ Return dictionary: 'column_name': [min, max] """
@@ -834,10 +841,6 @@ def update_status(status, variable, text, formats=["[ ]", "[x]"]):
         return [*status, html.Div('{} No {}'.format(formats[0], text))]
 
 
-
-
-
-
 from urllib.parse import urlencode
 @app.callback(
     [
@@ -870,34 +873,35 @@ def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, 
                    xaxis_operator, yaxis_operator, 
                    xaxis_second_name, yaxis_second_name,
                    bricks_selected, download_columns, *args):
-    # Option 0: No click
+    # Check:  No click
     if (not n_clicks):
         return [None, None]
-    # Setup: Pre-pack variables
+    # Setup:  Pre-pack variables
     parameters = locals()
-    # Setup: Remove unnecessary variables
+    # Setup:  Remove unnecessary variables
     del parameters['selected_data']
     del parameters['args']
-    #del parameters['n_clicks']
-    # Setup: Status
+    # Setup:  Status
     status = [html.Div('Status: ')]
     status = update_status(status, bricks_selected, "Bricks Selected")
-    # Setup: Axes to include
+    # Check:  No Brick
+    if (not bricks_selected):
+        return [None, status]
+    # Setup:  Axes to include
     axis_name_list = reduced_axis_list(
         download_columns, xaxis_name, yaxis_name, caxis_name, saxis_name, 
         xaxis_two_name, yaxis_two_name, caxis_two_name
     )
     parameters['axis_name_list'] = axis_name_list
     status = update_status(status, axis_name_list, "Columns to Download Selected")
-    # Option 1: Exit if nothing selected
-    if (not status):
+    # Check:  No axis
+    if len(axis_name_list) == 0:
         return [None, status]
     # Otherwise Go Ahead-->
     t0 = dt.now()
-    # Setup: Include Slider Criteria
+    # Setup:  Include Slider Criteria
     criteria_dict = args_to_criteria(bricks_selected, args)
     status = update_status(status, criteria_dict, "Criteria Specified", formats=["-","-"])
-
     # Selection Adjustments
     vertices = []
     if selected_data:
@@ -906,14 +910,16 @@ def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, 
             # Step 1.1: Update Criteria
             x_interval = selected_data['range']['x']
             y_interval = selected_data['range']['y']
-            criteria_dict[xaxis_name] = update_interval(
-                criteria_dict, xaxis_name, 
-                np.min(x_interval), np.max(x_interval)
-            )
-            criteria_dict[yaxis_name] = update_interval(
-                criteria_dict, yaxis_name, 
-                np.min(y_interval), np.max(y_interval)
-            )
+            if xaxis_name in criteria_dict.keys():
+                criteria_dict[xaxis_name] = update_interval(
+                    criteria_dict, xaxis_name, 
+                    np.min(x_interval), np.max(x_interval)
+                )
+            if yaxis_name in criteria_dict.keys():
+                criteria_dict[yaxis_name] = update_interval(
+                    criteria_dict, yaxis_name, 
+                    np.min(y_interval), np.max(y_interval)
+                )
             status = update_status(status, [x_interval, y_interval], "Rectangle Selected", formats=["-","-"])
         # Option 2: Curve
         if 'lassoPoints' in selected_data.keys():
@@ -923,13 +929,15 @@ def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, 
             xmin, ymin = vertices.min(0)
             xmax, ymax = vertices.max(0)
             if xaxis_name in criteria_dict.keys():
-                xmin = np.max(xmin, criteria_dict[xaxis_name][0])
-                xmax = np.min(xmax, criteria_dict[xaxis_name][1])
+                criteria_dict[xaxis_name] = update_interval(
+                    criteria_dict, xaxis_name, 
+                    xmin, xmax
+                )
             if yaxis_name in criteria_dict.keys():
-                ymin = np.max(ymin, criteria_dict[yaxis_name][0])
-                ymax = np.min(ymax, criteria_dict[yaxis_name][1])
-            criteria_dict[xaxis_name] = [xmin, xmax]
-            criteria_dict[yaxis_name] = [ymin, ymax]
+                criteria_dict[yaxis_name] = update_interval(
+                    criteria_dict, yaxis_name,
+                    ymin, ymax
+                )
             status = update_status(status, vertices.shape[0], "Lasso Vertices Selected", formats=["-","-"])
     # Pack criteria
     parameters['vertices'] = vertices
@@ -937,7 +945,7 @@ def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, 
     if n_clicks > 2:
         return ['/dash/selected_download.csv?'+urlencode(parameters), status]
     else:
-        return ['', '']
+        return ['', 'Please confirm by pressing the button again!']
 
 
 from flask import Response, send_file
@@ -970,14 +978,14 @@ def download_selection():
         print("  polygon slicing: {}".format(dt.now()-t1))
     # Inspect sizes:  size(CSV_string) ~ 2.725*size(return_data)
     return_size_mb = np.sum([return_data[key].nbytes for key in return_data.keys()])/1024/1024
+    # Send small files as one
     if return_size_mb < settings['stream_min_size_mb']:
-        # Send small files as one
         return send_file(generate_small_file(return_data, return_size_mb),
                          mimetype='text/csv',
                          attachment_filename='selected_criteria_data.csv',
                          as_attachment=True)
+    # Asynchronous Streaming of Large Files
     else:
-        # Asynchronous Streaming of Large Files
         print("  Raw Size:  {:,.2f} mb".format(
             return_size_mb
         ))
@@ -1048,19 +1056,19 @@ output_list = [
         output_list,
         [dash.dependencies.Input('column_slicer', 'value')]
         )
-def hide_unhide(criteria_show_list):
+def hide_unhide_sliders(criteria_show_list):
     """ Return Div.styles to hide and unhide divs """
-    # Hide all
-    show_dict = {
-        '{}_div'.format(column_name):{**slider_style, 'display': 'none'} 
+    if not criteria_show_list:
+        criteria_show_list = []
+    # Show if column is selected, otherwise hide
+    style_dict = {
+        '{}_div'.format(column_name):hide_unhide_div(
+            (column_name in criteria_show_list), 
+            base_style=slider_style
+        ) 
         for column_name in slice_col_list
     }
-    # Show selected
-    if criteria_show_list:
-        for col_show in criteria_show_list:
-            show_dict['{}_div'.format(col_show)] = {**slider_style, 'display': 'block'}
-        #print(show_dict)
-    return list(show_dict.values())
+    return list(style_dict.values())
 
 @app.callback(
     [
@@ -1174,15 +1182,9 @@ from data_selector import get_axis_data, format_two_columns, adjust_axis_type
         dash.dependencies.Input('caxis_column', 'value')
     ]
 )
-def unhide_axis_formatter(xaxis_name, yaxis_name, caxis_name):
-    styles = [{'display': 'none'}, {'display': 'none'}, {'display': 'none'}]
-    if xaxis_name:
-        styles[0] = {'display': 'block'}
-    if yaxis_name:
-        styles[1] = {'display': 'block'}
-    if caxis_name:
-        styles[2] = {'display': 'block'}
-    return styles
+def unhide_axis_formatter(*args):
+    """ return list of styles if name defined """
+    return [hide_unhide_div(arg) for arg in args]
 
 def get_axis_properties(axis_column_name, axis_type, axis_orientation):
     return {
