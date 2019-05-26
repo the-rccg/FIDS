@@ -83,7 +83,7 @@ import dash_html_components as html
 import plotly.graph_objs as go
 
 ####################################################################################
-# Define Columns to be used
+# Columns: Use, Slice, etc.
 ####################################################################################
 
 # Getting dtypes
@@ -152,7 +152,6 @@ slice_list = [
         id='{}_div'.format(column_name), 
         style={
             **slider_style,
-            #'display': None
             'display': 'none'
         }
     )
@@ -216,6 +215,15 @@ dropdown_style = {
     'padding': '3px'
 }
 
+def add_explanation(obj, title=""):
+    """ Wrap a DCC object with an explanation on mouse-over """
+    if not title:
+        try:
+            title = obj.placeholder
+        except:
+            title = "??"
+    return html.Abbr(obj, title=title)
+
 def create_formatter(axis_naming, axis_title, column_list):
     """ Return collapsable formatting div """
     # TODO: Move to table from float/inline-block
@@ -236,6 +244,7 @@ def create_formatter(axis_naming, axis_title, column_list):
                         [
                             # 2.1: Linear vs. Log vs. Exp
                             html.Div(
+                                add_explanation(
                                 dcc.Dropdown(
                                     placeholder='Axis scaling',
                                     id='{}-type'.format(axis_naming),
@@ -244,6 +253,7 @@ def create_formatter(axis_naming, axis_title, column_list):
                                             for i in ['Linear', 'Log Scale', 'Ln()', 'Log10()', 'e^()', '10^()']
                                     ],
                                     value='Linear'
+                                )
                                 ), 
                                 style={
                                     'width': '49%', 
@@ -344,6 +354,7 @@ app.layout = html.Div([
         
         # Element 1: Data File Selector
         html.Div(
+            add_explanation(
             dcc.Dropdown(
                 id='brick_selector',
                 placeholder='Select FITS files...',
@@ -351,8 +362,8 @@ app.layout = html.Div([
                     {'label': '{}'.format(i), 'value': i} 
                         for i in filename_list
                 ],
-                value=None,
                 multi=True
+            )
             ),
             style=dropdown_style 
         ),
@@ -462,7 +473,6 @@ app.layout = html.Div([
                         {'label': i, 'value': i} 
                             for i in selected_columns
                     ],
-                    value=None
                 ),
                 # TODO: Scaling sizes
             ],
@@ -479,7 +489,6 @@ app.layout = html.Div([
                         {'label': '{}'.format(col_name), 'value': col_name} 
                             for col_name in slice_col_list
                     ],
-                    value=None,
                     multi=True
                 )
             ],
@@ -541,66 +550,12 @@ app.layout = html.Div([
             # 8.2 Download Section
             html.Div(
                 [
-                    # 8.2.1: Download Selection
-                    html.Div(
-                        [
-                            # 8.2.1.1 Description
-                            html.Div(
-                                'Download data selected on graph:',
-                                style={
-                                    'padding': '3px 0px 0px 3px',
-                                    'font-size': '16px',
-                                    'font-weight': 'bold'
-                                }
-                            ),
-                            # 8.2.1.2 Button
-                            html.A(
-                                html.Button(
-                                    'Download *SELECTED* Data', 
-                                    className='button-primary',
-                                    id='selected_button'
-                                ),
-                                id='download-selection',
-                                download="selected_data.csv",
-                                href="",
-                                target="_blank",
-                                style={'padding': '3px'}
-                            ),
-                        ]
-                    ), 
-                    # 8.2.2: Download All in selected area
-                    html.Div(
-                        [
-                            # 8.2.2.1 Description
-                            html.Div(
-                                'Download all data in selected area on graph:',
-                                style={
-                                    'padding': '3px 0px 0px 3px',
-                                    'font-size': '16px',
-                                    'font-weight': 'bold'
-                                }
-                            ),
-                            # 8.2.2.2 Button
-                            html.A(
-                                html.Button(
-                                    'Download *ALL IN SELECTED* area', 
-                                    className='button-primary',
-                                    id='all-selected-button'
-                                ),
-                                id='download-all-in-selection',
-                                download="selected_area.csv",
-                                href="",
-                                target="_blank",
-                                style={'padding': '3px'}
-                            ),
-                        ]
-                    ), 
-                    # 8.2.3: Download entire brick
+                    # 8.2.1: Download Raw File
                     html.Div(
                         [
                             # 8.2.3.1 Description
                             html.Div(
-                                'Download entire brick:',
+                                'Download entire file:',
                                 style={
                                     'padding': '3px 20px 0px 3px',
                                     'font-size': '16px',
@@ -618,48 +573,52 @@ app.layout = html.Div([
                                             {'label': '{}'.format(i), 'value': i} 
                                             for i in filename_list
                                         ],
-                                        value=None,
                                         multi=False,
                                     ),
                                     style={
-                                        'width': '49%', 
-                                        'display': 'inline-block'
+                                        **dropdown_style,
+                                        'display': 'table-cell',
+                                        'width': 'auto',
                                     }
                                 ),
                                 # 8.2.3.1 Download Button
-                                html.Div(
-                                    html.A(
-                                        html.Button(
-                                            'Download *ENTIRE FILE*', 
-                                            className='button-primary', 
-                                            type='button-primary',
-                                            id='entire-file-button'
-                                        ),
-                                        id='download-full-link',
-                                        download="rawdata.fits",
-                                        href="",
-                                        target="_blank",
-                                        style={'padding': '3px'}
+                                html.A(
+                                    html.Button(
+                                        'Download *ENTIRE FILE*', 
+                                        className='button-primary', 
+                                        type='button-primary',
+                                        id='entire-file-button'
                                     ),
+                                    id='download-full-link',
+                                    download="rawdata.fits",
+                                    href="",
+                                    target="_blank",
                                     style={
-                                        'width': '49%', 
-                                        'float': 'right', 
-                                        'display': 'inline-block'
+                                        'padding': '3px',
+                                        'display': 'table-cell',
+                                        'width': '50px'
                                     }
-                                )
-                            ])
+                                ),
+                            ],
+                            style={
+                                'width': '100%',
+                                'display': 'table'
+                            })
                         ],
                         style={
-                            'padding': '0px 5px 0px 0px',
                             'margin-top': '5px'
                         }
                     ),
-                    # 8.2.4 Select columns to download
-                    html.Div(
+                    # 8.2.2: Download Selected Criteria
+                    html.Div( 
                         [
                             # 8.2.4.1 Description
                             html.Div(
-                                'Download all data fitting the criteria:',
+                                html.Abbr(
+                                    'Download all data fitting the criteria:',
+                                    title="Download all data points that fall within the criteria of sliders, selection, columns graphed and columns selected additionally",
+                                    style={'border': 'none', 'text-decoration': 'none'}
+                                ),
                                 style={
                                     'padding': '3px 20px 0px 3px',
                                     'font-size': '16px',
@@ -674,45 +633,60 @@ app.layout = html.Div([
                                     'font-style':'italic'
                                 }
                             ),
-                            # 8.2.4.3 Column Selector
-                            html.Div(
-                                dcc.Dropdown(
-                                    id='download_columns',
-                                    placeholder='Select fields to download...',
-                                    options=[
-                                        {'label': '{}'.format(col_name), 'value': col_name}
-                                            for col_name in column_names
-                                    ],
-                                    value=None,
-                                    multi=True,
+                            html.Div([
+                                # 8.2.4.3 Column Selector
+                                html.Div(
+                                    dcc.Dropdown(
+                                        id='download_columns',
+                                        placeholder='Select fields to download...',
+                                        options=[
+                                            {'label': '{}'.format(col_name), 'value': col_name}
+                                                for col_name in column_names
+                                        ],
+                                        multi=True,
+                                    ),
+                                    style={
+                                        **dropdown_style,
+                                        'display': 'table-cell',
+                                        'width': 'auto'
+                                    }
                                 ),
-                                style=dropdown_style
-                            )
+                                # 8.2.3 Download all data in criteria
+                                html.A(
+                                    html.Button(
+                                        'Download *BY CRITERIA*',
+                                        id='criteria_download_button',
+                                        className='button-primary', 
+                                        type='button-primary',
+                                        n_clicks=0
+                                    ),
+                                    id='download-criteria-link',
+                                    #download="within_criteria_data.csv",
+                                    href="",
+                                    target="_blank",
+                                    style={
+                                        'padding': '3px',
+                                        'display': 'table-cell',
+                                        'width': '70px'
+                                    }
+                                ),
+                            ],
+                            style={
+                                'display': 'table',
+                                'width': '100%'
+                            }),
                         ],
                         style={
-                            'padding': '0px 5px 0px 0px',
+                            #'padding': '0px 5px 0px 0px',
                             'margin-top': '5px'
                         }
-                    ),
-                    # 8.2.5 Download all data in criteria
-                    html.A(
-                        html.Button(
-                            'Download *ALL IN CRITERIA*',
-                            id='criteria_download_button',
-                            className='button-primary', 
-                            type='button-primary'
-                        ),
-                        id='download-criteria-link',
-                        download="within_criteria_data.csv",
-                        href="",
-                        target="_blank",
-                        style={'padding': '3px'}
-                    ),
+                    )
                 ],
                 style={
                     'border': 'solid 1px #A2B1C6',
                     'border-radius': '5px',
-                    'padding': '5px'
+                    'padding': '5px',
+                    #'width': '100%'
                 }
             ),
         ]),
@@ -796,27 +770,52 @@ if debug:
         return ret_str
 
 
+def hide_unhide_div(truth_statement, base_style={}, debug=False):
+    if truth_statement or debug:
+        return {**base_style, 'display':'block'}
+    else:
+        return {**base_style, 'display':'none'}
+
 ####################################################################################
 # Get Selection
 ####################################################################################
+from polygon_selection import get_data_in_polygon
+import urllib
+import pandas as pd
+
+from data_selector import get_limits, reduce_cols, slice_data, get_relevant_bricks, get_brick_usage
+from datetime import datetime as dt
+
+from flask import session
 
 #def get_vertices(selected_data):
 #    vertices = None
 #    return vertices
 
+def args_to_criteria(bricks_selected, args):
+    """ Return dictionary: 'column_name': [min, max] """
+    criteria_dict = {}
+    if args:
+        # NOTE: REMEMBER TO DELOG IF LOG USED
+        criteria_dict = {slice_col_list[i]:limits for i, limits in enumerate(args)}
+        if bricks_selected and criteria_dict:
+            criteria_dict = get_limits(bricks_selected, criteria_dict, brick_column_details)
+        else:
+            criteria_dict = {}
+    return criteria_dict
+
 def reduced_axis_list(*args):
     """ Return list of used, nun-duplicate columns """
+    # Add non-list items
     axis_list = list(set([col for col in args if (col) and type(col)!=list]))
+    # Add lists 
     for col in args:
         if type(col) == list:
             axis_list += col
     return axis_list
 
-from polygon_selection import get_data_in_polygon
-
-from flask import session
-
 def update_interval(data, key, min_two, max_two):
+    """ Return updated (min, max) """
     if key in data.keys():
         new_min = np.max(min_two, data[key][0])
         new_max = np.min(max_two, data[key][1])
@@ -825,10 +824,28 @@ def update_interval(data, key, min_two, max_two):
         new_max = max_two
     return new_min, new_max
 
+def update_status(status, variable, text, formats=["[ ]", "[x]"]):
+    """ NOTE: ugly. div does not allow: \n, linesep, <br> """
+    if type(status) != list:
+        status = list(status)
+    if variable:
+        return [*status, html.Div('{} {}: {}'.format(formats[1], text, variable))]
+    else: 
+        return [*status, html.Div('{} No {}'.format(formats[0], text))]
+
+
+
+
+
+
+from urllib.parse import urlencode
 @app.callback(
-    dash.dependencies.Output('download-all-in-selection', 'href'),
     [
-        dash.dependencies.Input('all-selected-button', 'n_clicks_timestamp')
+        dash.dependencies.Output('download-criteria-link', 'href'),
+        dash.dependencies.Output('download_column_status', 'children')
+    ],
+    [
+        dash.dependencies.Input('criteria_download_button', 'n_clicks')
     ],
     [
         dash.dependencies.State('indicator-graphic', 'selectedData'),
@@ -848,128 +865,124 @@ def update_interval(data, key, min_two, max_two):
         *slice_states
     ]
 )
-# Only Executed on click
-def get_selected_criteria(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, saxis_name,
-                          xaxis_two_name, yaxis_two_name, caxis_two_name,
-                          xaxis_operator, yaxis_operator, 
-                          xaxis_second_name, yaxis_second_name,
-                          bricks_selected, download_columns, *args, **kwargs):
-    """ Extract vertices from selection and sets them as CSV download 
-    
-    NOTE: Large datasets exceed maximum href link length 
-          and send_file will have to be used in the future
-    """
-    # Option 0: No Click
+def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, saxis_name,
+                   xaxis_two_name, yaxis_two_name, caxis_two_name,
+                   xaxis_operator, yaxis_operator, 
+                   xaxis_second_name, yaxis_second_name,
+                   bricks_selected, download_columns, *args):
+    # Option 0: No click
     if (not n_clicks):
-        return None
-    # Option 0: Nothing selected
-    if not selected_data:
-        return None
-    # Setup Axis to include
-    t0 = dt.now()
+        return [None, None]
+    # Setup: Pre-pack variables
+    parameters = locals()
+    # Setup: Remove unnecessary variables
+    del parameters['selected_data']
+    del parameters['args']
+    #del parameters['n_clicks']
+    # Setup: Status
+    status = [html.Div('Status: ')]
+    status = update_status(status, bricks_selected, "Bricks Selected")
+    # Setup: Axes to include
     axis_name_list = reduced_axis_list(
         download_columns, xaxis_name, yaxis_name, caxis_name, saxis_name, 
         xaxis_two_name, yaxis_two_name, caxis_two_name
     )
-    # Include Slider Selection
+    parameters['axis_name_list'] = axis_name_list
+    status = update_status(status, axis_name_list, "Columns to Download Selected")
+    # Option 1: Exit if nothing selected
+    if (not status):
+        return [None, status]
+    # Otherwise Go Ahead-->
+    t0 = dt.now()
+    # Setup: Include Slider Criteria
     criteria_dict = args_to_criteria(bricks_selected, args)
-    # Option 1: Rectangle
-    if 'range' in selected_data.keys():
-        x_interval = selected_data['range']['x']
-        y_interval = selected_data['range']['y']
-        # Use interval selection
-        criteria_dict[xaxis_name] = update_interval(
-            criteria_dict, xaxis_name, 
-            np.min(x_interval), np.max(x_interval)
-        )
-        criteria_dict[yaxis_name] = update_interval(
-            criteria_dict, yaxis_name, 
-            np.min(y_interval), np.max(y_interval)
-        )
-        return_data = get_all_data(
-            bricks_selected, axis_name_list, criteria_dict, 
-            brick_column_details, data
-        )
-    # Option 2: Curve
-    elif 'lassoPoints' in selected_data.keys():
-        # Create vertices
-        vertices = np.array(list(zip(selected_data['lassoPoints']['x'], selected_data['lassoPoints']['y'])))
-        #pprint(vertices)
-        # Select relevant bricks
-        xmin, ymin = vertices.min(0)
-        xmax, ymax = vertices.max(0)
-        if xaxis_name in criteria_dict.keys():
-            xmin = np.max(xmin, criteria_dict[xaxis_name][0])
-            xmax = np.min(xmax, criteria_dict[xaxis_name][1])
-        if yaxis_name in criteria_dict.keys():
-            ymin = np.max(xmin[1], criteria_dict[yaxis_name][0])
-            ymax = np.min(xmax[1], criteria_dict[yaxis_name][1])
-        criteria_dict[xaxis_name] = [xmin, xmax]
-        criteria_dict[yaxis_name] = [ymin, ymax]
-        # Get Data
-        return_data = get_all_data(
-            bricks_selected, axis_name_list, criteria_dict, 
-            brick_column_details, data
-        )
-        # Reduce data to selection
+    status = update_status(status, criteria_dict, "Criteria Specified", formats=["-","-"])
+
+    # Selection Adjustments
+    vertices = []
+    if selected_data:
+        # Option 1: Rectangle
+        if 'range' in selected_data.keys():
+            # Step 1.1: Update Criteria
+            x_interval = selected_data['range']['x']
+            y_interval = selected_data['range']['y']
+            criteria_dict[xaxis_name] = update_interval(
+                criteria_dict, xaxis_name, 
+                np.min(x_interval), np.max(x_interval)
+            )
+            criteria_dict[yaxis_name] = update_interval(
+                criteria_dict, yaxis_name, 
+                np.min(y_interval), np.max(y_interval)
+            )
+            status = update_status(status, [x_interval, y_interval], "Rectangle Selected", formats=["-","-"])
+        # Option 2: Curve
+        if 'lassoPoints' in selected_data.keys():
+            # Step 2.1: Create array of vertices
+            vertices = np.array(list(zip(selected_data['lassoPoints']['x'], selected_data['lassoPoints']['y'])))
+            # Step 2.2: Update Criteria
+            xmin, ymin = vertices.min(0)
+            xmax, ymax = vertices.max(0)
+            if xaxis_name in criteria_dict.keys():
+                xmin = np.max(xmin, criteria_dict[xaxis_name][0])
+                xmax = np.min(xmax, criteria_dict[xaxis_name][1])
+            if yaxis_name in criteria_dict.keys():
+                ymin = np.max(ymin, criteria_dict[yaxis_name][0])
+                ymax = np.min(ymax, criteria_dict[yaxis_name][1])
+            criteria_dict[xaxis_name] = [xmin, xmax]
+            criteria_dict[yaxis_name] = [ymin, ymax]
+            status = update_status(status, vertices.shape[0], "Lasso Vertices Selected", formats=["-","-"])
+    # Pack criteria
+    parameters['vertices'] = vertices
+    parameters['criteria_dict'] = criteria_dict
+    if n_clicks > 2:
+        return ['/dash/selected_download.csv?'+urlencode(parameters), status]
+    else:
+        return ['', '']
+
+
+from flask import Response, send_file
+from download import generate_df, generate_tmp, generate_small_file, unpack_vars
+
+@app.server.route('/dash/selected_download.csv') 
+def download_selection():
+    """ Serve download of defined data """
+    # TODO: Not working with combined axes
+    # Unpack arguments - TODO: use proper decoding
+    variables = unpack_vars(request.args.to_dict()) #urllib.parse.parse_qs(str(request.query_string))
+    # TODO: Fix the 1 click delayed update
+    #print(int(variables['n_clicks']), int(variables['n_clicks'])%2)
+    #if int(variables['n_clicks'])%2:
+    #    return ""
+    # Repack to types and nested types
+    # Get relevant data based on criteria
+    return_data = get_all_data(
+        variables['bricks_selected'], variables['axis_name_list'], variables['criteria_dict'], 
+        brick_column_details, brick_data_types, data
+    )
+    # Cut to vertices
+    if len(variables['vertices']):
+        # Step 2.4: Reduce data to selection polygon
         t1 = dt.now()
-        return_data = get_data_in_polygon(xaxis_name, yaxis_name, vertices, return_data)
+        return_data = get_data_in_polygon(
+            variables['xaxis_name'], variables['yaxis_name'], 
+            variables['vertices'], return_data
+        )
         print("  polygon slicing: {}".format(dt.now()-t1))
-
-    print("  get selection data: {}".format(dt.now()-t0))
-    # Convert to CSV and Return
-    csv_string = "data:text/csv;charset=utf-8,%EF%BB%BF" + urllib.parse.quote(pd.DataFrame(return_data).to_csv(), encoding="utf-8")
-    print("  CSV String Length: {:,}".format(len(csv_string)))
-    return csv_string
-
-####################################################################################
-# Download Selection
-####################################################################################
-from os import linesep 
-import pandas as pd
-import urllib.parse
-
-def selected_data_to_csv(selected_data_dict, xaxis_name, yaxis_name, caxis_name, saxis_name):
-    if saxis_name:
-        print("WARNING SIZE IS ADJUSTED FOR VISUALIZATION!!!")
-    points = selected_data_dict['points']
-    #print(points)
-    num_points = len(points)
-    if num_points == 0:
-        return ""
-    if num_points > 10000:
-        print('WARNING large dataset parsing: {}'.format(num_points))
-    # Option 1: Explicit CSV String Construction
-    if not caxis_name and not saxis_name:
-        csv_string = "description,{},{}".format(xaxis_name, yaxis_name) + linesep + "{}".format(linesep).join(['{}, {}, {}'.format(point['text'], point['x'], point['y']) for point in points])
-    elif not saxis_name:
-        csv_string = "description,{},{},{}".format(xaxis_name,yaxis_name,caxis_name) + linesep + "{}".format(linesep).join(['{}, {}, {}, {}'.format(point['text'], point['x'], point['y'], point['marker.color']) for point in points])
-    # Option 2: CSV String from DataFrame
+    # Inspect sizes:  size(CSV_string) ~ 2.725*size(return_data)
+    return_size_mb = np.sum([return_data[key].nbytes for key in return_data.keys()])/1024/1024
+    if return_size_mb < settings['stream_min_size_mb']:
+        # Send small files as one
+        return send_file(generate_small_file(return_data, return_size_mb),
+                         mimetype='text/csv',
+                         attachment_filename='selected_criteria_data.csv',
+                         as_attachment=True)
     else:
-        csv_string = pd.DataFrame(points).to_csv()
-    return csv_string
+        # Asynchronous Streaming of Large Files
+        print("  Raw Size:  {:,.2f} mb".format(
+            return_size_mb
+        ))
+        return Response(generate_tmp(return_data, settings['stream_chunk_size_mb']), mimetype='text/csv')
 
-@app.callback(
-    dash.dependencies.Output('download-selection', 'href'),
-    [
-        dash.dependencies.Input('selected_button', 'n_clicks_timestamp')
-    ],
-    [
-        dash.dependencies.State('indicator-graphic', 'selectedData'),
-        dash.dependencies.State('xaxis_column', 'value'),
-        dash.dependencies.State('yaxis_column', 'value'),
-        dash.dependencies.State('caxis_column', 'value'),
-        dash.dependencies.State('saxis_column', 'value')
-    ])
-def download_selected(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, saxis_name):
-    # Check if update needed
-    if (not n_clicks):
-        return None
-    if type(selected_data) == dict:
-        return "data:text/csv;charset=utf-8,%EF%BB%BF" + urllib.parse.quote(selected_data_to_csv(selected_data, xaxis_name, yaxis_name, caxis_name, saxis_name), encoding="utf-8")
-    else:
-        return 
-    
 
 ####################################################################################
 # Allow Downloading Entire Brick
@@ -983,30 +996,29 @@ from os.path import isfile
     [dash.dependencies.Input('download_file', 'value')]
 )
 def update_download_link(file_list):
-    '''  '''
+    """ Return link to download multiple raw files """
     if not file_list or file_list == "None":
         return [None, None]
-    # TODO: Figure out to get this to work
-    #if type(file_list) is list:
-    #    print(file_list)
-    #    save_name = "_and_".join([file_name.split('.')[0] for file_name in file_list]) + '.fits'
-    #    return ['/dash/download?value={}'.format(",".join(file_list)), save_name]
-    #    #file_value = file_value[0]
-    filepath = settings['folderpath'] + file_list
-    if not isfile(filepath):
-        return [None, None]
-    else:
-        file_name = file_list
-        return ['/dash/download?value={}'.format(file_name), file_name]
+    if type(file_list) != list:
+        file_list = [file_list]
+    return [
+        '/dash/download?{}'.format(urlencode({'file_list':file_list})), 
+        file_list[0]
+    ]
 
-from flask import request, send_file
 @app.server.route('/dash/download') 
 def download_file():
-    filename = request.args.get('value')
-    file_list = filename.split(',')
+    """ Retrieve filename and send to client via flask """
+    args = unpack_vars(request.args.to_dict())
+    file_list = args['file_list']
+    if type(file_list) != list:
+        file_list = [file_list]
     print("download: ", file_list)
     filepath_list = [settings['folderpath'] + filename for filename in file_list]
-    filepath = filepath_list[0]  # TODO: Allow downloading of multiple files
+    # TODO: Allow downloading of multiple files
+    filepath = filepath_list[0]
+    filename = file_list[0]
+    print("{}: {}".format(filename, filepath))
     return send_file(filepath,
                 #mimetype='text/csv',
                 attachment_filename=filename,
@@ -1014,95 +1026,6 @@ def download_file():
 ####################################################################################
 
 
-####################################################################################
-# Download by criteria
-####################################################################################
-from data_selector import get_limits, reduce_cols, slice_data, get_relevant_bricks, get_brick_usage
-from datetime import datetime as dt
-
-def args_to_criteria(bricks_selected, args):
-    """ returns dictionary: 'column_name': [min, max] """
-    criteria_dict = {}
-    if args:
-        # NOTE: REMEMBER TO DELOG IF LOG USED
-        criteria_dict = {slice_col_list[i]:limits for i, limits in enumerate(args)}
-        if bricks_selected and criteria_dict:
-            criteria_dict = get_limits(bricks_selected, criteria_dict, brick_column_details)
-        else:
-            criteria_dict = {}
-    return criteria_dict
-
-@app.callback(
-    [
-        dash.dependencies.Output('download-criteria-link', 'href'),
-        dash.dependencies.Output('download_column_status', 'children')
-    ],
-    [
-        dash.dependencies.Input('criteria_download_button', 'n_clicks_timestamp'),
-    ],
-    [
-        dash.dependencies.State('brick_selector', 'value'),
-        dash.dependencies.State('download_columns', 'value'),
-        *[dash.dependencies.State('{}'.format(col_name), 'value') 
-                    for col_name in slice_col_list]
-    ])
-def download_criteria(n_clicks_timestamp, bricks_selected, download_columns, *args):
-    """ Download all points in selected files that fall under criteria """
-    print("  processing... {}".format(download_columns))
-    #ctx = dash.callback_context
-    #if not ctx.triggered:
-    #    msg = 'None of the buttons have been clicked yet'
-    #else:
-    #    print(ctx.triggered)
-    #    button_num = ctx.triggered[0]['prop_id'].split('.')
-    #    msg = 'Button {} was most recently clicked'.format(button_num)
-    #ctx_msg = json.dumps({
-    #    'states': ctx.states,
-    #    'triggered': ctx.triggered,
-    #    'inputs': ctx.inputs
-    #}, indent=2)
-    status = ''
-    # Check if update needed
-    if (not n_clicks_timestamp):
-        return [None, None]
-    if (not bricks_selected):
-        status += 'No Bricks Selected. '
-    if (not download_columns):
-        status += 'No Columns to Download Selected. '
-    if status:
-        return [None, 'Status: ' + status]
-    # Get criteria
-    criteria_dict = args_to_criteria(bricks_selected, args)
-    if (not criteria_dict):
-        status += 'No Criteria Specified. '
-        return [None, 'Status: ' + status]
-    status = 'success.'
-    # Set-up structure with appropriate types
-    selected_data = pd.DataFrame({
-        column_name:pd.Series([], dtype=brick_data_types[column_name]) 
-        for column_name in download_columns
-    })
-    for brick_name in bricks_selected:
-        selected_data = pd.concat(
-            [
-                selected_data,
-                pd.DataFrame(
-                    slice_data(
-                        data[brick_name].data, 
-                        criteria_dict,
-                        download_columns
-                    )
-                )
-            ]
-        )
-    return ["data:text/csv;charset=utf-8,%EF%BB%BF+{}".format(
-        urllib.parse.quote(
-            selected_data.to_csv(), 
-            encoding="utf-8"
-        )
-    ),'Status: ' + status]
-
-####################################################################################
 
 
 ####################################################################################
@@ -1362,7 +1285,7 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
             return_data = get_all_data(
                 bricks_selected,
                 axis_name_list,
-                criteria_dict, brick_column_details,
+                criteria_dict, brick_column_details, brick_data_types,
                 data)
         # Unpack
         text_name,  text   = get_axis_data(return_data, settings['name_column'])

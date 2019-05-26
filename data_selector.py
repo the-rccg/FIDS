@@ -28,14 +28,14 @@ def get_sample_indices(sample_size, total_size):
 ####################################################################################
 
 def get_all_data(bricks_selected, axis_name_list, criteria_dict, 
-                 brick_column_details, data):
+                 brick_column_details, brick_data_types, data):
     """ Return all data in bricks which conform by criteria
 
     Iteratively appends data from bricks
     """
-    # 0. Setup
+    # 0. Setup with appropriate types
     return_data = {
-        axis_name:np.array([])
+        axis_name:np.array([], dtype=brick_data_types[axis_name])
         for axis_name in axis_name_list
     }
     current_length = 0
@@ -62,7 +62,7 @@ def get_all_data(bricks_selected, axis_name_list, criteria_dict,
         # 4. Wrap up
         sample_size = selected_data[axis_name_list[0]].shape[0]
         current_length += sample_size
-    print("  data points: {}".format(current_length))
+    print("  data points: {:,}".format(current_length))
     return return_data
 
 def get_sample_data(bricks_selected, display_count, axis_name_list, criteria_dict, 

@@ -9,6 +9,8 @@ venv
 _backup
 local/*
 *-Adler*
+notes.*
+output.txt
 
 ### JupyterNotebook ###
 .ipynb_checkpoints
