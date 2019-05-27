@@ -1347,7 +1347,7 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
         else:
             marker_properties['colorscale'] = settings['inv_color_scale']
         marker_properties['showscale'] = True
-        marker_properties['colorbar'] = {'title':caxis_name}
+        marker_properties['colorbar'] = {'title':caxis_name, 'titleside':'right'}
     else:
         marker_properties['color'] = 1  # Recolor after color axis removed
     if has_saxis:
