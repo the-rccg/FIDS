@@ -90,13 +90,28 @@ import plotly.graph_objs as go
 # Getting dtypes
 from io_tools import parse_datatype
 # Add column criteria selection
+def map_types(dictionary):
+    """ NOTE: The following give DIFFERENT types
+    data.data[col_name].dtype       -- read as NumPy array (desired)  e.g. >f8, <U100
+    dict(data.columns.dtype.descr)  -- fastest to get (raw storaoge)  e.g. <f8, |S100
+    data.data.columns.dtype.fields  -- Python dtype                   e.g. float64, S100
+    dict(data.data.dtype.descr))    -- ???                            e.g. >f8, |S100
+    """
+    for key in dictionary.keys():
+        if dictionary[key][0] == "<":
+            dictionary[key] = ">"+dictionary[key][1:]
+        if dictionary[key][0] == "|":
+            dictionary[key] = "<"+dictionary[key][1:]
+        if dictionary[key][1] == "S":
+            dictionary[key] = dictionary[key][0] + "U" + dictionary[key][2:]
+    return dictionary
 def get_brick_data_types(data, filename_list):
     # The bad: Load entire array in memory
     #dict(data[filename_list[0]].data.dtype.descr)
     # The good: Load just dtypes of numpy array
     #data[filename_list[0]].columns.dtype.fields
     return dict(data[filename_list[0]].columns.dtype.descr)
-brick_data_types = get_brick_data_types(data, filename_list)
+brick_data_types = map_types(get_brick_data_types(data, filename_list))
 #for col in brick_data_types.keys():
 #    if brick_data_types[col][:2] == '|S':
 #        brick_data_types[col] = '<U'+brick_data_types[col][2:]
@@ -526,8 +541,8 @@ app.layout = html.Div([
                     },
                     style={
                         'responsive': 'true',
-                        'height':'inherit', 
-                        'width':'inherit'
+                        'height': 'inherit', 
+                        'width': 'inherit'
                     }
                 ),
                 style={
@@ -635,8 +650,8 @@ app.layout = html.Div([
                             html.Div(
                                 id='download_column_status',
                                 style={
-                                    'padding':'0px 0px 0px 3px',
-                                    'font-style':'italic'
+                                    'padding': '0px 0px 0px 3px',
+                                    'font-style': 'italic'
                                 }
                             ),
                             html.Div([
@@ -742,8 +757,8 @@ app.layout = html.Div([
                 )
             ],
             style={
-                'font-size':'14px', 
-                'padding':'5px'
+                'font-size': '14px', 
+                'padding': '5px'
             }
         ), 
         className='footer', 
@@ -1269,10 +1284,11 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
         # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
         bricks_selected = get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, min_usage=0)
         # Column list
-        axis_name_list = [settings['name_column'],
-                          xaxis_name, yaxis_name, caxis_name, saxis_name,
-                          xaxis_second_column, yaxis_second_column, caxis_second_column]
-        axis_name_list = [axis_name for axis_name in axis_name_list if axis_name]
+        axis_name_list = reduced_axis_list(
+            settings['name_column'],
+            xaxis_name, yaxis_name, caxis_name, saxis_name,
+            xaxis_second_column, yaxis_second_column, caxis_second_column
+        )
         print(axis_name_list)
 
         # Subsample
@@ -1296,9 +1312,7 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
         caxis_name, c_data = get_axis_data(return_data, caxis_name, caxis_operator, caxis_second_column)
         saxis_name, s_data = get_axis_data(return_data, saxis_name)
 
-        print(text[:10])
-        
-        # Create Title
+        # Create Title  
         title = format_two_columns('vs.', xaxis_name, yaxis_name)
         
     else:

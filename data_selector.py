@@ -75,7 +75,7 @@ def get_sample_data(bricks_selected, display_count, axis_name_list, criteria_dic
     # 0. Allocate memory
     t1 = dt.now()
     return_data = {
-        '{}'.format(col_name): np.empty(display_count, dtype=brick_data_types[col_name])
+        col_name: np.empty(display_count, dtype=brick_data_types[col_name])
         for col_name in axis_name_list
     }
     # TODO: Read Itemsize from column definition in FITS file
@@ -112,20 +112,29 @@ def get_sample_data(bricks_selected, display_count, axis_name_list, criteria_dic
                 max_fill_attempts=settings['max_fill_attempts'],
                 brick_data_types=brick_data_types)
         print("  slice data: {}".format(dt.now()-t1))
+        data_size = min(
+            sample_size-current_length, 
+            min(sample_size, selected_data[axis_name_list[0]].shape[0])
+        )
         # 3. Assign Data
         for axis_name in axis_name_list:
-            sample_size = selected_data[axis_name].shape[0]
-            #print(return_data[axis_name].dtype, brick_data_types[axis_name], selected_data[axis_name].dtype, data[brick_i].columns.dtype.fields[axis_name])
-            #print(axis_name, sample_size)
+            # TODO: TRY RETYPING
+            if return_data[axis_name].dtype != selected_data[axis_name].dtype:
+                print(return_data[axis_name].dtype, brick_data_types[axis_name], selected_data[axis_name].dtype, data[brick_i].columns.dtype.fields[axis_name])
+                #selected_data[axis_name] = selected_data[axis_name][0:data_size].astype(return_data[axis_name].dtype)
+                #return_data[axis_name] = return_data[axis_name].astype(selected_data[axis_name].dtype)
+                #print(return_data[axis_name].dtype, brick_data_types[axis_name], selected_data[axis_name].dtype, data[brick_i].columns.dtype.fields[axis_name])
             try:
-                return_data[axis_name][current_length:current_length+sample_size] = selected_data[axis_name]
-            except:
-                return_data[axis_name] = np.append(return_data[axis_name],selected_data[axis_name])
-        # Look at dtype....
-        print(selected_data[settings['name_column']].dtype)
+                return_data[axis_name][current_length:current_length+data_size] = selected_data[axis_name][0:data_size]
+            except Exception as e:
+                print("  could not assign, appending. {}".format(e))
+                return_data[axis_name] = np.append(return_data[axis_name], selected_data[axis_name])
         print("  assign {}:  {}".format(brick_i, dt.now()-t1))
-        current_length += sample_size
+        current_length += data_size
         t1 = dt.now()
+    # 4. Cut Data
+    for axis_name in axis_name_list:
+        return_data[axis_name] = return_data[axis_name][0:current_length]
     return return_data
 
 def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_dict={}, brick_use=1, max_fill_attempts=1, brick_data_types={}):
@@ -170,48 +179,60 @@ def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, crit
     sufficient_data = False
     current_length = 0
     slice_count = 0
-    # 1. Get Data
-    while not sufficient_data: 
-        # Criteria Based Slicing
-        if criteria_dict:
-            # 1. Allocate memory
-            selected_data = {
-                axis_name:np.empty(sample_size, dtype=brick_data_types[axis_name])
-                for axis_name in axis_name_list
-            }
-            #selected_data[settings['name_column']] = np.empty(sample_size, dtype='<U{}'.format(100))  # Description
-            # TODO: Better handling for this
-            if slice_count > max_fill_attempts:
-                sufficient_data = True
-            # 2. Oversample by 1/brick_use.  e.g. 5% brick_use: (1/0.05 = 20)*sample_size
-            select_points = get_sample_indices(int(round(sample_size/brick_use)), brick_size)
-            # 3. Get data
+    # A) Criteria Based Slicing
+    if criteria_dict:
+        # 1. Pre-Allocate Memory
+        selected_data = {
+            axis_name:np.empty(sample_size, dtype=brick_data_types[axis_name])
+            for axis_name in axis_name_list
+        }
+        # 2. Oversample by 1/brick_use.  e.g. 5% brick_use: (1/0.05 = 20)*sample_size
+        next_sample_size = int(round(sample_size/brick_use))
+        # Ensure enough data
+        while not sufficient_data: 
+            # 3. Get random sample
+            select_points = get_sample_indices(next_sample_size, brick_size)
+            # 4. Get Data
             new_data = slice_data(
                 brick_data.data[select_points],
                 criteria_dict,
                 axis_name_list)
             data_size = min(sample_size-current_length, min(sample_size, len(new_data[axis_name_list[0]])))
-            try:
-                print("  new slice (got/wanted/queried): {:,}/{:,}/{:,}".format(
-                    len(new_data[axis_name_list[0]]), 
-                    sample_size,
-                    int(round(sample_size/brick_use))))
-            except:
-                pass
+            print("  new slice (got/wanted/queried): {:,}/{:,}/{:,}".format(
+                len(new_data[axis_name_list[0]]), 
+                sample_size,
+                int(round(sample_size/brick_use))))
+            # 5. Assign data
             for axis_name in axis_name_list:
                 selected_data[axis_name][current_length:current_length+data_size] = new_data[axis_name][0:data_size]
             current_length += data_size
             slice_count += 1
             # Check for sufficienct
             if current_length >= sample_size:
+                sufficient_data = True  
+            # TODO: Better handling for this
+            if slice_count > max_fill_attempts:
                 sufficient_data = True
-        # Simple
-        else:
-            # 2. Sample
-            select_points = get_sample_indices(sample_size, brick_size)
-            # 3. Get data
-            selected_data = reduce_cols(brick_data.data[select_points], axis_name_list)
-            sufficient_data = True
+                # Cut to how much data we got
+                for axis_name in axis_name_list:
+                    selected_data[axis_name] = selected_data[axis_name][0:current_length]
+            # 6. Adjust next Iteration
+            # Vaguely analogous to iteratively approaching distribution
+            # TODO: Set maximum number of sample to be used for memory usage
+            #if not sufficient_data:
+            #    sample_use = data_size/next_sample_size  # Fraction received
+            #    # Oversample by fraction received previously
+            #    next_sample_size = np.min([
+            #        int(round(sample_size/sample_use)),
+            #        brick_size,
+            #        settings['max_sample_size']
+            #    ])
+    # B) Simple
+    else:
+        # 2. Sample
+        select_points = get_sample_indices(sample_size, brick_size)
+        # 3. Get & Assign data
+        selected_data = reduce_cols(brick_data.data[select_points], axis_name_list)
     # Return data
     return selected_data
 
