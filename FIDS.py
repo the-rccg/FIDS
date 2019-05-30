@@ -998,7 +998,8 @@ def download_selection():
         return send_file(generate_small_file(return_data, return_size_mb),
                          mimetype='text/csv',
                          attachment_filename='selected_criteria_data.csv',
-                         as_attachment=True)
+                         as_attachment=True,
+                         cache_timeout=0)
     # Asynchronous Streaming of Large Files
     else:
         print("  Raw Size:  {:,.2f} mb".format(
@@ -1045,7 +1046,8 @@ def download_file():
     return send_file(filepath,
                 #mimetype='text/csv',
                 attachment_filename=filename,
-                as_attachment=True)
+                as_attachment=True,
+                cache_timeout=0)
 ####################################################################################
 
 
