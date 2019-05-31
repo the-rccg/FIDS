@@ -829,18 +829,18 @@ def args_to_criteria(bricks_selected, args):
 def reduced_axis_list(*args):
     """ Return list of used, nun-duplicate columns """
     # Add non-list items
-    axis_list = list(set([col for col in args if (col) and type(col)!=list]))
+    axis_list = [col for col in args if (col) and type(col)!=list]
     # Add lists 
     for col in args:
         if type(col) == list:
             axis_list += col
-    return axis_list
+    return sorted(list(set(axis_list)))
 
 def update_interval(data, key, min_two, max_two):
     """ Return updated (min, max) """
     if key in data.keys():
-        new_min = np.max(min_two, data[key][0])
-        new_max = np.min(max_two, data[key][1])
+        new_min = np.maximum(min_two, data[key][0])
+        new_max = np.minimum(max_two, data[key][1])
     else:
         new_min = min_two
         new_max = max_two
@@ -979,13 +979,18 @@ def download_selection():
     # Repack to types and nested types
     # Get relevant data based on criteria
     return_data = get_all_data(
-        variables['bricks_selected'], variables['axis_name_list'], variables['criteria_dict'], 
-        brick_column_details, brick_data_types, data
+        variables['bricks_selected'], 
+        variables['axis_name_list'], 
+        variables['criteria_dict'], 
+        brick_column_details, 
+        brick_data_types, 
+        data
     )
     # Cut to vertices
     if len(variables['vertices']):
         # Step 2.4: Reduce data to selection polygon
         t1 = dt.now()
+
         return_data = get_data_in_polygon(
             variables['xaxis_name'], variables['yaxis_name'], 
             variables['vertices'], return_data
@@ -1006,6 +1011,8 @@ def download_selection():
             return_size_mb
         ))
         return Response(generate_tmp(return_data, settings['stream_chunk_size_mb']), mimetype='text/csv')
+    # Catch nothing
+    return
 
 
 ####################################################################################

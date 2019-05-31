@@ -33,23 +33,24 @@ def get_all_data(bricks_selected, axis_name_list, criteria_dict,
 
     Iteratively appends data from bricks
     """
-    # 0. Setup with appropriate types
+    # 0. Adjust for Brick usage: Only query bricks with data in criteria
+    bricks_selected = get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, min_usage=0)
+    # 1. Setup with appropriate types: No length known to fall under criteria
     return_data = {
         axis_name:np.array([], dtype=brick_data_types[axis_name])
         for axis_name in axis_name_list
     }
     current_length = 0
-    # 1. Adjust for Brick usage: Only use above min, oversample proportionally, etc.
-    bricks_selected = get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, min_usage=0)
+    # 2. Get Data for each brick individually
     for brick_name in bricks_selected:
-        # 2. Slicing data once reads it once, making it faster than using index
+        # 2.1 Slicing data once reads it once, making it faster than using index
         t1 = dt.now()
         selected_data = slice_data(
                 data[brick_name].data,  # Pass immutable for reference to limit copies
                 criteria_dict,
                 axis_name_list) 
         print("  slice data: {}".format(dt.now()-t1))
-        # 3. Assign
+        # 2.2. Assign
         # TODO: Test memory and CPU for np.append vs np.concat
         # NOTE: Creates copies. Length unknown, hence no better option. 
         t1 = dt.now()
@@ -58,7 +59,6 @@ def get_all_data(bricks_selected, axis_name_list, criteria_dict,
                 return_data[axis_name], 
                 selected_data[axis_name]
             )
-        print("  assign {}:  {}".format(brick_name, dt.now()-t1))
         # 4. Wrap up
         sample_size = selected_data[axis_name_list[0]].shape[0]
         current_length += sample_size

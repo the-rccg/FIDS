@@ -2,38 +2,33 @@ import numpy as np
 from numba import jit
 
 @jit(nopython=True, parallel=True)
-def isPointInPath(x, y, poly):
+def vec_point_in_polygon(x, y, poly):
     """
-    x, y -- x and y coordinates of point
-    poly -- a list of tuples [(x, y), (x, y), ...]
+    x, y -- x and y coordinates of point, as 1D NumPy Array
+    poly -- 2D collection of shape [(x, y), (x, y), ...]
     -------------------------------------------------
-    PNPOLY - Point Inclusion in Polygon Test
-    W. Randolph Franklin (WRF) 
-    source:  https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+    VecPNPOLY - Vectorized Point Inclusion in Polygon Test
+    by RCCG (github.com/the-rccg)
+    adapted from W. Randolph Franklin (WRF), see: https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
     """
-    num = len(poly)  # Number of vertices
-    i = 0            # First Vertex
-    j = num - 1      # Previous Vertex
-    c = False
-    # Loop over vertices
-    for i in range(num):
-        if ((poly[i][1] > y) != (poly[j][1] > y)) and \
-                (x < poly[i][0] + (poly[j][0] - poly[i][0]) * (y - poly[i][1]) /
-                                (poly[j][1] - poly[i][1])):
-            c = not c
-        j = i
+    num = poly.shape[0]  # Number of vertices
+    i = 0                # First Vertex
+    j = num - 1          # Previous Vertex
+    # Explicit first lop
+    c = np.logical_and(
+        np.logical_xor((poly[i][1] > y), (poly[j][1] > y)),
+        (x < poly[i][0] + (poly[j][0]-poly[i][0]) * (y-poly[i][1]) / (poly[j][1]-poly[i][1]))
+    )
+    for i in range(1, num):
+        j = i-1
+        c = np.logical_xor(
+            c,
+            np.logical_and(
+                np.logical_xor((poly[i][1] > y), (poly[j][1] > y)),
+                (x < poly[i][0] + (poly[j][0]-poly[i][0]) * (y-poly[i][1]) / (poly[j][1]-poly[i][1]))
+            )
+        )
     return c
-
-
-@jit(nopython=True, parallel=True)
-def get_even_odd_flags(x, y, vertices):
-    """ Allow vector x/y coordinate to be calculated """
-    flags = np.empty(len(x), dtype=np.bool_)
-    for i in range(len(x)):
-        flags[i] = isPointInPath(x[i], y[i], vertices)
-    return flags
-
-
 
 #@jit(nopython=True, parallel=True)
 def get_data_in_polygon(xaxis_name, yaxis_name, vertices, return_data):
@@ -41,7 +36,7 @@ def get_data_in_polygon(xaxis_name, yaxis_name, vertices, return_data):
 
     Iteratively appends data from bricks
     """
-    flags = get_even_odd_flags(return_data[xaxis_name], return_data[yaxis_name], vertices)
+    flags = vec_point_in_polygon(return_data[xaxis_name], return_data[yaxis_name], vertices)
     return_data = {col:return_data[col][flags] for col in return_data.keys()}
     return return_data
 
