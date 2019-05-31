@@ -957,10 +957,10 @@ def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, 
     # Pack criteria
     parameters['vertices'] = vertices
     parameters['criteria_dict'] = criteria_dict
-    if n_clicks > 2:
+    if n_clicks > 1:
         return ['/dash/selected_download.csv?'+urlencode(parameters), status]
     else:
-        return ['', 'Please confirm by pressing the button again!']
+        return ['/dash/selected_download.csv?'+urlencode(parameters), 'Please confirm by pressing the button again!']
 
 
 from flask import Response, send_file
