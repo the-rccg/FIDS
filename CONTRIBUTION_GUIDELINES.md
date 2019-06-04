@@ -10,8 +10,8 @@
 
 **Clear documentation** Following of the previous statement, clear descriptions of what exactly a function does are encouraged, and to keep comments of pitfalls that are rather unexpected but negatively affect performance. 
 
-**If possible, generalize** your addition to be useful for the broadest possible audience.
+**If possible, generalize** Addition should be useful for the broadest possible audience.
 
-**Dynamic is better than static** to allow it scaling to any number of columns, axes, datasets, etc.
+**Dynamic is better than static** Allow scaling to any number of columns, axes, datasets, etc. with as few parameters as possible.
 
-**Minimal pre-processing** in order to allow quick initializations of new datasets to explore them.
+**Minimal pre-processing** Lazy computations and loading is preferred to allow quick initializations to peak into new datasets.
