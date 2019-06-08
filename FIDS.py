@@ -888,6 +888,7 @@ def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, 
                    xaxis_operator, yaxis_operator, 
                    xaxis_second_name, yaxis_second_name,
                    bricks_selected, download_columns, *args):
+   
     # Check:  No click
     if (not n_clicks):
         return [None, None]
@@ -917,20 +918,23 @@ def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, 
     # Setup:  Include Slider Criteria
     criteria_dict = args_to_criteria(bricks_selected, args)
     status = update_status(status, criteria_dict, "Criteria Specified", formats=["-","-"])
+    # Check for combined axis
+    is_xaxis_combined = (xaxis_two_name) and (xaxis_operator)
+    is_yaxis_combined = (yaxis_two_name) and (yaxis_operator)
     # Selection Adjustments
     vertices = []
     if selected_data:
         # Option 1: Rectangle
-        if 'range' in selected_data.keys():
+        if ('range' in selected_data.keys()):
             # Step 1.1: Update Criteria
             x_interval = selected_data['range']['x']
             y_interval = selected_data['range']['y']
-            if xaxis_name in criteria_dict.keys():
+            if (xaxis_name in criteria_dict.keys()) and (not is_xaxis_combined):
                 criteria_dict[xaxis_name] = update_interval(
                     criteria_dict, xaxis_name, 
                     np.min(x_interval), np.max(x_interval)
                 )
-            if yaxis_name in criteria_dict.keys():
+            if (yaxis_name in criteria_dict.keys() )and (not is_yaxis_combined):
                 criteria_dict[yaxis_name] = update_interval(
                     criteria_dict, yaxis_name, 
                     np.min(y_interval), np.max(y_interval)
@@ -943,12 +947,12 @@ def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, 
             # Step 2.2: Update Criteria
             xmin, ymin = vertices.min(0)
             xmax, ymax = vertices.max(0)
-            if xaxis_name in criteria_dict.keys():
+            if (xaxis_name in criteria_dict.keys()) and (not is_axis_combined):
                 criteria_dict[xaxis_name] = update_interval(
                     criteria_dict, xaxis_name, 
                     xmin, xmax
                 )
-            if yaxis_name in criteria_dict.keys():
+            if (yaxis_name in criteria_dict.keys()) and (not is_yaxis_combined):
                 criteria_dict[yaxis_name] = update_interval(
                     criteria_dict, yaxis_name,
                     ymin, ymax
@@ -990,12 +994,12 @@ def download_selection():
     if len(variables['vertices']):
         # Step 2.4: Reduce data to selection polygon
         t1 = dt.now()
-
         return_data = get_data_in_polygon(
             variables['xaxis_name'], variables['yaxis_name'], 
             variables['vertices'], return_data
         )
         print("  polygon slicing: {}".format(dt.now()-t1))
+    print("data points: {:,}".format(return_data[variables['axis_name_list'][0]].shape[0]))
     # Inspect sizes:  size(CSV_string) ~ 2.725*size(return_data)
     return_size_mb = np.sum([return_data[key].nbytes for key in return_data.keys()])/1024/1024
     # Send small files as one
@@ -1040,6 +1044,7 @@ def update_download_link(file_list):
 @app.server.route('/dash/download') 
 def download_file():
     """ Retrieve filename and send to client via flask """
+    #pprint(request.args.to_dict())
     args = unpack_vars(request.args.to_dict())
     file_list = args['file_list']
     if type(file_list) != list:
@@ -1278,7 +1283,7 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
     # 1. Herzsprung Russel columns
     # absolut magnitude / luminosity
     # stellar classification / effective temperatures
-    #custom_functions =  {}
+    #custom_functions = {}
 
     # Fill new data
     t0 = dt.now()
