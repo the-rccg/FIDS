@@ -14,6 +14,7 @@ import io
 from sys import getsizeof
 import re
 import ast
+from pprint import pprint
 
 def unpack_vars(variables):
     """ unpack variables parsed via http request """
@@ -24,8 +25,8 @@ def unpack_vars(variables):
                 if variables[key][1] == '[':
                     # Insert commas between numbers, and between lists
                     variables[key] = re.sub(
-                        r"(\d+)\s+(\d+)", 
-                        r"\1,\2", 
+                        r"([-\d]+)\s+([\d-]+)",
+                        r"\1,\2",
                         variables[key].replace("\n ",",")
                     )
                     # Remove white spaces, translate to list, reformat as array
@@ -35,7 +36,7 @@ def unpack_vars(variables):
             elif variables[key][0] == '{':
                 # No handling for nested dictionaries
                 variables[key] = ast.literal_eval(variables[key])
-            elif variables[key][0] =="'":
+            elif variables[key][0] == "'":
                 variables[key] = ast.literal_eval(variables[key])
     return variables
 

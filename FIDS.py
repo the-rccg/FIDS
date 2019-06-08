@@ -808,7 +808,7 @@ from polygon_selection import get_data_in_polygon
 import urllib
 import pandas as pd
 
-from data_selector import get_limits, reduce_cols, slice_data, get_relevant_bricks, get_brick_usage
+from data_selector import get_limits, reduce_cols, slice_data, get_relevant_bricks
 from datetime import datetime as dt
 
 from flask import session
@@ -855,6 +855,10 @@ def update_status(status, variable, text, formats=["[ ]", "[x]"]):
     else: 
         return [*status, html.Div('{} No {}'.format(formats[0], text))]
 
+def from_dict(dictionary, key_list):
+    """ Return list of values from dictionary """
+    return [dictionary[key] for key in key_list]
+
 
 from urllib.parse import urlencode
 @app.callback(
@@ -871,6 +875,8 @@ from urllib.parse import urlencode
         dash.dependencies.State('yaxis_column', 'value'),
         dash.dependencies.State('caxis_column', 'value'),
         dash.dependencies.State('saxis_column', 'value'),
+        dash.dependencies.State('xaxis-type', 'value'),
+        dash.dependencies.State('yaxis-type', 'value'),
         dash.dependencies.State('xaxis-combined-column', 'value'),
         dash.dependencies.State('yaxis-combined-column', 'value'),
         dash.dependencies.State('caxis-combined-column', 'value'),
@@ -883,7 +889,9 @@ from urllib.parse import urlencode
         *slice_states
     ]
 )
-def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, saxis_name,
+def params_to_link(n_clicks, selected_data, 
+                   xaxis_name, yaxis_name, caxis_name, saxis_name,
+                   xaxis_type, yaxis_type, #caxis_type, saxis_type,
                    xaxis_two_name, yaxis_two_name, caxis_two_name,
                    xaxis_operator, yaxis_operator, 
                    xaxis_second_name, yaxis_second_name,
@@ -895,8 +903,8 @@ def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, 
     # Setup:  Pre-pack variables
     parameters = locals()
     # Setup:  Remove unnecessary variables
-    del parameters['selected_data']
-    del parameters['args']
+    del parameters['selected_data']  # Too big as it incldues every single point displayed
+    del parameters['args']  # Relevant re-added with proper names for encoding
     # Setup:  Status
     status = [html.Div('Status: ')]
     status = update_status(status, bricks_selected, "Bricks Selected")
@@ -947,7 +955,7 @@ def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, 
             # Step 2.2: Update Criteria
             xmin, ymin = vertices.min(0)
             xmax, ymax = vertices.max(0)
-            if (xaxis_name in criteria_dict.keys()) and (not is_axis_combined):
+            if (xaxis_name in criteria_dict.keys()) and (not is_xaxis_combined):
                 criteria_dict[xaxis_name] = update_interval(
                     criteria_dict, xaxis_name, 
                     xmin, xmax
@@ -969,19 +977,20 @@ def params_to_link(n_clicks, selected_data, xaxis_name, yaxis_name, caxis_name, 
 
 from flask import Response, send_file
 from download import generate_df, generate_tmp, generate_small_file, unpack_vars
+from polygon_selection import get_data_in_selection
 
 @app.server.route('/dash/selected_download.csv') 
 def download_selection():
-    """ Serve download of defined data """
-    # TODO: Not working with combined axes
+    """ Serve download of defined data 
+    
+    TODO: 
+    - Fix the delay between updating URL and clicking the download link
+    
+    """
     # Unpack arguments - TODO: use proper decoding
-    variables = unpack_vars(request.args.to_dict()) #urllib.parse.parse_qs(str(request.query_string))
-    # TODO: Fix the 1 click delayed update
-    #print(int(variables['n_clicks']), int(variables['n_clicks'])%2)
-    #if int(variables['n_clicks'])%2:
-    #    return ""
     # Repack to types and nested types
-    # Get relevant data based on criteria
+    variables = unpack_vars(request.args.to_dict()) #urllib.parse.parse_qs(str(request.query_string))
+    # 1. Get relevant data based on slice criteria
     return_data = get_all_data(
         variables['bricks_selected'], 
         variables['axis_name_list'], 
@@ -990,16 +999,18 @@ def download_selection():
         brick_data_types, 
         data
     )
-    # Cut to vertices
+    # 2. Cut to visual selection
     if len(variables['vertices']):
-        # Step 2.4: Reduce data to selection polygon
+        # Reduce data to selection polygon
         t1 = dt.now()
-        return_data = get_data_in_polygon(
-            variables['xaxis_name'], variables['yaxis_name'], 
-            variables['vertices'], return_data
+        return_data = get_data_in_selection(
+            variables['xaxis_name'], variables['yaxis_name'], variables['vertices'], 
+            return_data, variables['axis_name_list'],
+            xaxis_type=variables['xaxis_type'], yaxis_type=variables['yaxis_two_name'],
+            xaxis_two_name=variables['xaxis_two_name'], xaxis_operator=variables['xaxis_operator'], 
+            yaxis_two_name=variables['yaxis_two_name'], yaxis_operator=variables['yaxis_operator']
         )
         print("  polygon slicing: {}".format(dt.now()-t1))
-    print("data points: {:,}".format(return_data[variables['axis_name_list'][0]].shape[0]))
     # Inspect sizes:  size(CSV_string) ~ 2.725*size(return_data)
     return_size_mb = np.sum([return_data[key].nbytes for key in return_data.keys()])/1024/1024
     # Send small files as one
