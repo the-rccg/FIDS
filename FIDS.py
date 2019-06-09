@@ -7,10 +7,43 @@ Line-length:  84 (since thats VSCode on 1080 vertical)
 
 @author: RCCG
 """
+# General
 import numpy as np
+import pandas as pd
 import json
 from pprint import pprint
+from datetime import datetime as dt
 from memory_profiler import profile
+# IO
+from io_tools import get_valid_filelist, get_dict_of_files, get_data_counts, get_brick_data_types
+from io_tools import parse_datatype, map_types
+from io_tools import load_json
+from os.path import isfile
+# Processing
+from data_processing import get_column_names, reduced_axis_list, args_to_criteria, update_interval
+# Data
+from data_selector import get_limits, reduce_cols, slice_data, get_relevant_bricks
+from data_selector import get_all_data, get_sample_data, get_subsetdata
+from data_selector import get_axis_data, format_two_columns, adjust_axis_type
+# Sliders
+from slider_magic import get_marks, get_range_slider, get_log_range_slider
+# Polygon 
+from polygon_selection import get_data_in_polygon, get_data_in_selection
+# Download
+from download import generate_df, generate_tmp, generate_small_file, unpack_vars
+# Div
+from div_updating import hide_unhide_div, update_status
+# Dash
+import dash
+import dash_auth
+import dash_core_components as dcc
+import dash_html_components as html
+import plotly.graph_objs as go
+# Web (Flask, etc.)
+from flask import request, session, Response, send_file
+import urllib
+from urllib.parse import urlencode
+
 
 # Load Settings
 settings = json.load(open('settings.json'))
@@ -27,60 +60,30 @@ else:
 
 # File names
 # TODO: Allow dictionary for renaming in display
-from os import listdir
-filename_list = sorted([file for file in listdir(settings['folderpath']) 
-                             if  file[-5:].lower()==".fits"])
+filename_list = get_valid_filelist(settings['folderpath'], settings['filetypes'])
 
 # Load Data
-from astropy.io import fits
 # TODO: Allow dictionary for renaming in display
+# TODO: Allow other data types
+# TODO: Allow heterogeneous data
+data = get_dict_of_files(filename_list, settings['folderpath'])
 
-def dict_of_files(filename_list):
-    return {
-        filename: fits.open(settings['folderpath'] + filename, memmap=True)[1] 
-        for filename in filename_list
-    }
-data = dict_of_files(filename_list)
-
+# Get File Descriptions
+data_counts = get_data_counts(data, ftype=settings['filetypes'][0])  
 # Defining columns
-# TODO: Allow dictionary for renaming in dispaly
 # TODO: Read or allow import of UNITS. Maybe visual initialization as an app?
 column_names_file = sorted(settings['columns_to_use'])
 column_names_data = sorted(data[filename_list[0]].columns.names)
-def get_column_names(filename_list, column_names_file, column_names_data):
-    if column_names_file:
-        column_names = [
-            column_name for column_name in column_names_file 
-                if column_name in column_names_data
-        ]
-    else:
-        column_names = sorted(data[filename_list[0]].columns.names)
-    return column_names
-column_names = get_column_names(filename_list, column_names_file, column_names_data)
-
-# Draw Params
-display_count_max = settings['display_count_max']
-display_count = settings['display_count_default']
-display_count_step = settings['display_count_granularity']
-
-# Default Parameters: No Default
-
-# Subsample when data is too large
-def get_data_counts(data):
-    return {filename: data[filename].header['NAXIS2'] for filename in data.keys()}
-data_counts = get_data_counts(data)  # Header is fastest way to get number of data points
-
+column_names = get_column_names(data, filename_list, column_names_file, column_names_data)
 # Reduce Columns to Useful
 selected_columns = column_names
 selected_columns.remove(settings['name_column']) #[name for name in column_names if name.split('_')[-1] not in ['p50', 'p84', 'p16', 'Exp']]
 #print("Selected Columns: {}".format(selected_columns))
 
-
-import dash
-import dash_auth
-import dash_core_components as dcc
-import dash_html_components as html
-import plotly.graph_objs as go
+# Draw Params
+display_count_max = settings['display_count_max']
+display_count = settings['display_count_default']
+display_count_step = settings['display_count_granularity']
 
 
 ####################################################################################
@@ -88,41 +91,21 @@ import plotly.graph_objs as go
 ####################################################################################
 
 # Getting dtypes
-from io_tools import parse_datatype
 # Add column criteria selection
-def map_types(dictionary):
-    """ NOTE: The following give DIFFERENT types
-    data.data[col_name].dtype       -- read as NumPy array (desired)  e.g. >f8, <U100
-    dict(data.columns.dtype.descr)  -- fastest to get (raw storaoge)  e.g. <f8, |S100
-    data.data.columns.dtype.fields  -- Python dtype                   e.g. float64, S100
-    dict(data.data.dtype.descr))    -- ???                            e.g. >f8, |S100
-    """
-    for key in dictionary.keys():
-        if dictionary[key][0] == "<":
-            dictionary[key] = ">"+dictionary[key][1:]
-        if dictionary[key][0] == "|":
-            dictionary[key] = "<"+dictionary[key][1:]
-        if dictionary[key][1] == "S":
-            dictionary[key] = dictionary[key][0] + "U" + dictionary[key][2:]
-    return dictionary
-def get_brick_data_types(data, filename_list):
-    # The bad: Load entire array in memory
-    #dict(data[filename_list[0]].data.dtype.descr)
-    # The good: Load just dtypes of numpy array
-    #data[filename_list[0]].columns.dtype.fields
-    return dict(data[filename_list[0]].columns.dtype.descr)
 brick_data_types = map_types(get_brick_data_types(data, filename_list))
-#for col in brick_data_types.keys():
-#    if brick_data_types[col][:2] == '|S':
-#        brick_data_types[col] = '<U'+brick_data_types[col][2:]
-allowed_types = ['>f8', '>i8', '<f8', '<i8']
-slice_col_list = [col_name for col_name in column_names if brick_data_types[col_name] in allowed_types][:17]
+allowed_types = settings["allowed_slider_dtypes"]
+slice_col_list = [
+    col_name for col_name in column_names 
+    if brick_data_types[col_name] in allowed_types
+][:settings["max_slider_count"]]
 
 # Get Brick Details
-from io_tools import load_json
 brick_column_details = load_json('brick_column_details.json', savepath=settings['savepath'])
 # Cut out bricks without computed details
-filename_list = [filename for filename in filename_list if filename in brick_column_details.keys()]
+filename_list = [
+    filename for filename in filename_list 
+    if filename in brick_column_details.keys()
+]
 column_details = {
     col_name: {
         'min': parse_datatype(np.min([brick_column_details[brick_name][col_name]['min'] for brick_name in filename_list])),
@@ -134,8 +117,6 @@ slice_col_list = [col for col in slice_col_list if col in column_details.keys()]
 print("Reduced Slice Col List: ", slice_col_list)
 
 # Set up range sliders
-from slider_magic import get_range_slider, get_log_range_slider
-
 slider_style = {
     #'height':34, 
     #'width':'97%', 
@@ -770,8 +751,6 @@ app.layout = html.Div([
 ####################################################################################
 # Debug Elements
 ####################################################################################
-from flask import request
-
 if debug:
     @app.callback(
         dash.dependencies.Output('debug-status', 'children'),
@@ -794,73 +773,9 @@ if debug:
         return ret_str
 
 
-def hide_unhide_div(truth_statement, base_style={}, debug=False, show='block'):
-    """ Return style with display if true """
-    if truth_statement or debug:
-        return {**base_style, 'display':show}
-    else:
-        return {**base_style, 'display':'none'}
-
 ####################################################################################
 # Get Selection
 ####################################################################################
-from polygon_selection import get_data_in_polygon
-import urllib
-import pandas as pd
-
-from data_selector import get_limits, reduce_cols, slice_data, get_relevant_bricks
-from datetime import datetime as dt
-
-from flask import session
-
-
-def args_to_criteria(bricks_selected, args):
-    """ Return dictionary: 'column_name': [min, max] """
-    criteria_dict = {}
-    if args:
-        # NOTE: REMEMBER TO DELOG IF LOG USED
-        criteria_dict = {slice_col_list[i]:limits for i, limits in enumerate(args)}
-        if bricks_selected and criteria_dict:
-            criteria_dict = get_limits(bricks_selected, criteria_dict, brick_column_details)
-        else:
-            criteria_dict = {}
-    return criteria_dict
-
-def reduced_axis_list(*args):
-    """ Return list of used, nun-duplicate columns """
-    # Add non-list items
-    axis_list = [col for col in args if (col) and type(col)!=list]
-    # Add lists 
-    for col in args:
-        if type(col) == list:
-            axis_list += col
-    return sorted(list(set(axis_list)))
-
-def update_interval(data, key, min_two, max_two):
-    """ Return updated (min, max) """
-    if key in data.keys():
-        new_min = np.maximum(min_two, data[key][0])
-        new_max = np.minimum(max_two, data[key][1])
-    else:
-        new_min = min_two
-        new_max = max_two
-    return new_min, new_max
-
-def update_status(status, variable, text, formats=["[ ]", "[x]"]):
-    """ NOTE: ugly. div does not allow: \n, linesep, <br> """
-    if type(status) != list:
-        status = list(status)
-    if variable:
-        return [*status, html.Div('{} {}: {}'.format(formats[1], text, variable))]
-    else: 
-        return [*status, html.Div('{} No {}'.format(formats[0], text))]
-
-def from_dict(dictionary, key_list):
-    """ Return list of values from dictionary """
-    return [dictionary[key] for key in key_list]
-
-
-from urllib.parse import urlencode
 @app.callback(
     [
         dash.dependencies.Output('download-criteria-link', 'href'),
@@ -924,7 +839,7 @@ def params_to_link(n_clicks, selected_data,
     # Otherwise Go Ahead-->
     t0 = dt.now()
     # Setup:  Include Slider Criteria
-    criteria_dict = args_to_criteria(bricks_selected, args)
+    criteria_dict = args_to_criteria(bricks_selected, slice_col_list, brick_column_details, args)
     status = update_status(status, criteria_dict, "Criteria Specified", formats=["-","-"])
     # Check for combined axis
     is_xaxis_combined = (xaxis_two_name) and (xaxis_operator)
@@ -974,10 +889,6 @@ def params_to_link(n_clicks, selected_data,
     else:
         return ['/dash/selected_download.csv?'+urlencode(parameters), 'Please confirm by pressing the button again!']
 
-
-from flask import Response, send_file
-from download import generate_df, generate_tmp, generate_small_file, unpack_vars
-from polygon_selection import get_data_in_selection
 
 @app.server.route('/dash/selected_download.csv') 
 def download_selection():
@@ -1033,7 +944,6 @@ def download_selection():
 ####################################################################################
 # Allow Downloading Entire Brick
 ####################################################################################
-from os.path import isfile
 @app.callback(
     [
         dash.dependencies.Output('download-full-link', 'href'),
@@ -1074,20 +984,9 @@ def download_file():
 ####################################################################################
 
 
-
-
-####################################################################################
-#   Get Data 
-####################################################################################
-from data_selector import get_all_data, get_sample_data, get_subsetdata
-####################################################################################
-
-
 ####################################################################################
 #   Sliders 
 ####################################################################################
-from slider_magic import get_marks
-
 output_list = [
     dash.dependencies.Output('{}_div'.format(column_name), 'style')
     for column_name in slice_col_list
@@ -1183,7 +1082,7 @@ def update_slider_titles(*args):
     # TODO: Handle arguments nicer than this hack
     bricks_selected = args[-1]
     args = args[:-1]
-    criteria = args_to_criteria(bricks_selected, args)
+    criteria = args_to_criteria(bricks_selected, slice_col_list, brick_column_details, args)
     pprint(criteria)
     # TODO: Rewrite this more efficient
     new_titles = []
@@ -1208,7 +1107,6 @@ def update_slider_titles(*args):
 ####################################################################################
 #   Axis Adjustments
 ####################################################################################
-from data_selector import get_axis_data, format_two_columns, adjust_axis_type
 
 @app.callback(
     [
@@ -1284,7 +1182,7 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
     # Extract Operators from args
     xaxis_operator, yaxis_operator, caxis_operator = args[-3], args[-2], args[-1]
     # Extract Criteria from args
-    criteria_dict = args_to_criteria(bricks_selected, args[:-3])
+    criteria_dict = args_to_criteria(bricks_selected, slice_col_list, brick_column_details, args[:-3])
 
     # Brick selection
     print("  Brick {} selected".format(bricks_selected))

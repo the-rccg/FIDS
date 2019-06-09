@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*- 
 import numpy as np
 from numba import jit
 
@@ -93,6 +94,10 @@ from data_selector import reduce_cols, get_axis_data, adjust_axis_type
 def get_data_in_selection(xaxis_name, yaxis_name, vertices, return_data, axis_name_list,
                           xaxis_type='linear', yaxis_type='linear',
                           xaxis_two_name='', xaxis_operator='', yaxis_two_name='', yaxis_operator=''):
+    """ Return data in the selected area
+    
+    Adjust for Combined Axes, Scaled Axes, and Polygon Selection
+    """
     # 1. Combined column fix: get_axis_data -> [axis_name, axis_values]
     disp_xaxis_name, xaxis_data = get_axis_data(return_data, xaxis_name, xaxis_operator, xaxis_two_name)
     disp_yaxis_name, yaxis_data = get_axis_data(return_data, yaxis_name, yaxis_operator, yaxis_two_name)
@@ -109,9 +114,11 @@ def get_data_in_selection(xaxis_name, yaxis_name, vertices, return_data, axis_na
 # Support Functions
 
 
-# Reduce vertices: Sometime duplicates were created in plotly
 def reduce_vertices(prel_vertices):
-    """ Remove redundant vertices from list """
+    """ Remove redundant vertices from list 
+    
+    Sometimes duplicates were created in plotly -- legacy, the bug seems to be resolved
+    """
     vertices = []
     for idx in range(1, len(prel_vertices)-2):
         if   (prel_vertices[idx][0] == prel_vertices[idx+1][0]) \

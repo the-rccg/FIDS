@@ -3,7 +3,6 @@ import numpy as np
 from datetime import datetime as dt
 import time
 from numba import jit
-
 from memory_profiler import profile
 
 
@@ -74,6 +73,7 @@ def get_all_data(bricks_selected, axis_name_list, criteria_dict,
     print("  data points: {:,}".format(current_length))
     return return_data
 
+
 def get_sample_data(bricks_selected, display_count, axis_name_list, criteria_dict, 
                     brick_column_details, data, brick_data_types, data_counts, settings):
     """ Return subsample of data within brick
@@ -134,6 +134,7 @@ def get_sample_data(bricks_selected, display_count, axis_name_list, criteria_dic
     for axis_name in axis_name_list:
         return_data[axis_name] = return_data[axis_name][0:current_length]
     return return_data
+
 
 def get_subsetdata(brick_data, axis_name_list, sample_size=0, brick_size=0, criteria_dict={}, brick_use=1, max_fill_attempts=1, brick_data_types={}):
     """ 
@@ -252,12 +253,14 @@ def extract_common_subset(string_one, string_two):
             break
     return string_one[:i], string_one[i:], string_two[i:]
 
+
 def extract_common_subwords(string_one, string_two):
     """ only cut by words """
     string_list_one = string_one.split(" ")
     string_list_two = string_two.split(" ")
     common, sub_string_one, sub_string_two = extract_common_subset(string_list_one, string_list_two)
     return " ".join(common), " ".join(sub_string_one), " ".join(sub_string_two)
+
 
 def format_two_columns(binding, column_one, column_two, bracketed=False):
     """ format two columns together """
@@ -273,6 +276,7 @@ def format_two_columns(binding, column_one, column_two, bracketed=False):
         if common:
             common += ':  '
         return '{}{} {} {}'.format(common, string_one, binding, string_two)
+
 
 def get_axis_data(data, axis_one_name, axis_operator='', axis_two_name=''):
     """ return the adjusted axis and formatted name """
@@ -293,6 +297,7 @@ def get_axis_data(data, axis_one_name, axis_operator='', axis_two_name=''):
         elif axis_operator == 'x':
             ret_axis_name = format_two_columns("$\times$", axis_one_name, axis_two_name, bracketed=True)
             return ret_axis_name, (data[axis_one_name] * data[axis_two_name])
+
 
 ####################################################################################
 
@@ -346,6 +351,7 @@ def get_limits(bricks_selected, limit_dict, brick_column_details):
         lim_dict = {}
     return lim_dict
 
+
 def get_brick_col_usage(brick, limit_dict, brick_column_details):
     """ Return dict of usage of columns within one brick usage {col_name:fractional_usage} """
     if limit_dict:
@@ -375,6 +381,7 @@ def get_brick_col_usage(brick, limit_dict, brick_column_details):
         col_usage = {col_name:1 for col_name in limit_dict.keys()}
     return col_usage
 
+
 def get_all_bricks_usage(bricks_selected, limit_dict, brick_column_details):
     """ Return dict of brick usage {brick_name:fractional_usage} """
     if limit_dict:
@@ -403,6 +410,7 @@ def get_all_bricks_usage(bricks_selected, limit_dict, brick_column_details):
         brick_usage = {brick:1 for brick in bricks_selected}
     return brick_usage
 
+
 def get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, min_usage):
     """ Return brick list that is above criteria """
     # Adjust for Brick usage: Only use above min, oversample proportionally, etc.
@@ -414,7 +422,8 @@ def get_relevant_bricks(bricks_selected, criteria_dict, brick_column_details, mi
     ]
     return bricks_selected
 
-def reduce_cols(data, axis_name_list, selection=0):
+
+def reduce_cols(data, axis_name_list, selection=[]):
     """ Slice named array by axis name list 
 
     TODO: test other implementations
@@ -426,19 +435,20 @@ def reduce_cols(data, axis_name_list, selection=0):
                     selection[:,i] = data[axis_name]
     """
     t1 = time.time()
-    if type(selection) != int:
+    if len(selection) > 1:
         selection = {
-            axis_name:data[axis_name][selection]
+            axis_name: data[axis_name][selection]
             for axis_name in axis_name_list
         }
     else:
         selection = {
-            axis_name:data[axis_name]
+            axis_name: data[axis_name]
             for axis_name in axis_name_list
         }
     t2 = time.time()
     print("    reduce: {:.2f}s".format(t2-t1))
     return selection
+
 
 #@jit(nopython=True, parallel=True)
 def get_within_limits(data, col_name, limits):
@@ -448,8 +458,9 @@ def get_within_limits(data, col_name, limits):
         data[col_name] < limits[1]
     )
 
+
 import operator
-def slice_data(data, criteria_dict, axis_name_list=[], list_comp=True, ordered=[]):
+def slice_data(data, criteria_dict, axis_name_list=[], list_comp=False, ordered=[]):
     """ Return sliced data as dictionary
     
     given named array, slice it according to (min,max) defined in criteria,
@@ -475,8 +486,10 @@ def slice_data(data, criteria_dict, axis_name_list=[], list_comp=True, ordered=[
         if not ordered:
             ordered = criteria_dict.items()
         for col_name, limits in ordered:
+            # Initialize
             if selection.shape[0] < 2:
                 selection = get_within_limits(data, col_name, limits)
+            # Inplace Adjust
             else:
                 np.logical_and(
                     selection, 
@@ -486,33 +499,3 @@ def slice_data(data, criteria_dict, axis_name_list=[], list_comp=True, ordered=[
         t2 = time.time()
         print("    cycle {:.2f}s".format(t2-t1))
     return reduce_cols(data, axis_name_list, selection)
-
-####################################################################################
-# No longer used...
-
-def get_slice_idx(data, axis_name_list, criteria_dict):
-    """ Return sliced, given criteria {'column_name':(min, max)} """
-    # Bulk slicing
-    #print(criteria_dict.items())
-    #t1 = time.time()
-    selection = np.all(
-        [get_within_limits(data, col_name, limits)
-            for col_name, limits in criteria_dict.items()],
-        0)
-    #t2 = time.time()
-    #print("list comprehension: {:.2f}s".format(t2-t1))
-    return selection
-
-def get_slice_idx2(data, axis_name_list, criteria_dict):
-    """ Return sliced, given criteria {'column_name':(min, max)} """
-    # Individual slicing for more efficient computation
-    #t1 = time.time()
-    selection = np.array([])#np.ones(data.data.shape[0], dtype=bool)
-    for col_name, limits in criteria_dict.items():
-        if selection.shape[0] < 2:
-            selection = get_within_limits(data, col_name, limits)
-        else:
-            np.logical_and(selection, get_within_limits(data, col_name, limits), out=selection)
-    #t2 = time.time()
-    #print("cycle {:.2f}s".format(t2-t1))
-    return selection
