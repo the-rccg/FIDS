@@ -6,8 +6,14 @@ from astropy.io import fits
 
 
 def get_fitstable_data(filenamepath, memmap=True):
-    """ Return FITS DataTable from file """
-    return fits.open(filenamepath, memmap=memmap)[1] 
+    """ Return FITS DataTable from file 
+    
+    FITS Tables are normally located at [1]
+    """
+    try:
+        return fits.open(filenamepath, memmap=memmap)[1]
+    except:
+        return fits.open(filenamepath, memmap=memmap)[0]
 
 
 def get_data_counts_fits(data):
