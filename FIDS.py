@@ -353,7 +353,8 @@ if not settings['debug']:
 app.title = 'FITS Dashboard: {}'.format(settings['name'])
 
 # Visual layout
-# TODO: Move "style"-img into CSS
+# TODO: Move "style" into CSS
+# TODO: Move to CSS Grid from mix of Float and Table
 app.layout = html.Div([
     html.Div([
         
