@@ -1024,45 +1024,49 @@ def hide_unhide_sliders(criteria_show_list):
 )
 def update_slice_limits(bricks_selected):
     """ Update limits on sliders depending on bricks selected """
-    #print("update_slice_limits")
     if bricks_selected:
+        # Min
         mins = [
-            # Min
-            parse_datatype(np.min([brick_column_details[brick_name][col_name]['min'] for brick_name in bricks_selected]))
+            parse_datatype(
+                np.min([
+                    brick_column_details[brick_name][col_name]['min'] 
+                    for brick_name in bricks_selected
+                ])
+            )
             for col_name in slice_col_list
         ] 
+        # Max
         maxs = [
-            # Max
-            parse_datatype(np.max([brick_column_details[brick_name][col_name]['max'] for brick_name in bricks_selected]))
+            parse_datatype(
+                np.max([
+                    brick_column_details[brick_name][col_name]['max'] 
+                    for brick_name in bricks_selected
+                ]
+            ))
             for col_name in slice_col_list
         ]
         # Marks
         marks = [
             get_marks(np.array([mins[idx], maxs[idx]]))
-            for idx in range(len(mins))
+            for idx in range(len(slice_col_list))
         ]
-        reduced_limits = mins + maxs + marks
     else:
-        reduced_limits = [
-            # Min
+        # Min
+        mins = [
             parse_datatype(column_details[col_name]['min'])
             for col_name in slice_col_list
-        ] + [
-            # Max
+        ] 
+        # Max
+        maxs = [
             parse_datatype(column_details[col_name]['max'])
             for col_name in slice_col_list
         ]        
         # Marks
-        reduced_limits += [
-            get_marks(
-                np.array([
-                    reduced_limits[idx], 
-                    reduced_limits[idx+int(len(reduced_limits)/2)]
-                ])
-            )
-            for idx in range(int(len(reduced_limits)/2))
+        marks = [
+            get_marks(np.array([mins[idx], maxs[idx]]))
+            for idx in range(len(slice_col_list))
         ]
-    #print('slice_limits: ', reduced_limits)
+    reduced_limits = mins + maxs + marks
     return reduced_limits
 
 @app.callback(

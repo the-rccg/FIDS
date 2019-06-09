@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-FITS Dash App
-Quickly sketch and explore data tables and relations sae in FITS format 
-
-Line-length:  84 (since thats VSCode on 1080 vertical)
-
-@author: RCCG
+Pack download helper funcitons 
 """
+# Modules
 import numpy as np
 import pandas as pd
 import tempfile
@@ -15,6 +11,7 @@ from sys import getsizeof
 import re
 import ast
 from pprint import pprint
+
 
 def unpack_vars(variables):
     """ unpack variables parsed via http request """
@@ -40,6 +37,7 @@ def unpack_vars(variables):
                 variables[key] = ast.literal_eval(variables[key])
     return variables
 
+
 def generate_df(return_data, chunk_size_mb):
     """ send in chunks from one large dataframe """
     row_count = return_data[list(return_data.keys())[0]].shape[0]
@@ -52,6 +50,7 @@ def generate_df(return_data, chunk_size_mb):
     while i < row_count: 
         yield return_data[i:i+chunk_size].to_csv(index=False, header=False)
         i += chunk_size
+
 
 def generate_tmp(return_data, chunk_size_mb):
     """ send in chunks from one large tempfile """
@@ -68,6 +67,7 @@ def generate_tmp(return_data, chunk_size_mb):
         yield tf.read(chunk_size)
         i += chunk_size
     tf.close()
+
 
 def generate_small_file(return_data, return_size_mb):
     """ send small file from memory """

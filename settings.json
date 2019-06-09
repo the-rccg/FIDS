@@ -7,7 +7,7 @@
     "savepath": "local/",
     "columns_to_use": ["Pmax", "mbol_Best", "logHST_WFC3_F110W_nd_Best", "M_ini_Best", "RA", "f_A_Best", "Av_Best", "HST_WFC3_F275W", "logF_QION_wd_Best", "logHST_ACS_WFC_F814W_wd_Best", "M_act_Best", "Z_Best", "HST_WFC3_F336W", "logGALEX_FUV_nd_Best", "DEC", "logF_UV_6_13e_nd_Best", "HST_WFC3_F110W", "logGALEX_NUV_nd_Best", "inside_brick", "logF_UV_6_13e_wd_Best", "logHST_ACS_WFC_F814W_nd_Best", "inside_chipgap", "logHST_WFC3_F336W_nd_Best", "HST_WFC3_F160W", "logA_Best", "logT_Best", "radius_Best", "Rv_Best", "HST_ACS_WFC_F814W", "chi2min_indx", "logHST_WFC3_F160W_wd_Best", "logF_QION_nd_Best", "logHST_WFC3_F275W_wd_Best", "specgrid_indx", "chi2min", "logL_Best", "field", "logGALEX_FUV_wd_Best", "HST_ACS_WFC_F475W", "Name", "logHST_WFC3_F275W_nd_Best", "logGALEX_NUV_wd_Best", "logHST_ACS_WFC_F475W_wd_Best", "logg_Best", "logHST_WFC3_F336W_wd_Best", "logHST_WFC3_F110W_wd_Best", "logHST_ACS_WFC_F475W_nd_Best", "Pmax_index", "logHST_WFC3_F160W_nd_Best", "Rv_A_Best"],
     "allowed_slider_dtypes": [">f8", ">i8", "<f8", "<i8"],
-    "max_slider_count": 17,
+    "max_slider_count": 18,
     "name_column": "Name",
     "display_count_max": 24000,
     "display_count_webgl_min": 12000,
