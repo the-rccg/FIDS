@@ -22,6 +22,12 @@ pip install dash-core-components  # Supercharged components
 pip install plotly --upgrade  # Plotly graphing library used in examples
 ```
 
+### Installing Numba & Dask
+```pip
+pip install numba
+pip install dask
+```
+
 ## Sample View
 ![sample view](https://github.com/the-rccg/FITS_dashboard/blob/master/assets/img/FIDS_screenshot.png)
 
