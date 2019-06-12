@@ -1,9 +1,11 @@
 # Introducing FIDS 
 **A DASHboard for FITS files**
 
-An interface for loading FITS Table data and displaying them in a Plotly.Dash dashboard for preliminary analysis of datasets in astronomy. 
+An interface for visualizing large FITS Table data remotely or locally in a dashboard for preliminary analysis of datasets and interactively selecting the data to download.
 
-Makes use of memory buffering of FITS files through AstroPy, subsampling of data to fit into memory through NumPy, and visualization using Flask and React through Dash
+FIDS makes use of memory buffering of FITS files through AstroPy, subsampling of data to fit into memory through NumPy, visualizing using Flask and React through Dash, and interactive selecting through Numba compiled point-in-polygon algorithms. 
+
+Distributed computing through Dask is still being developed to ensure comparable performance and minimal setup is maintained under all circumstances. 
 
 [![astropy](http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat)](http://www.astropy.org/)
 
