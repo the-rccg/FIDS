@@ -30,6 +30,22 @@ pip install numba
 pip install dask
 ```
 
+## Running FIDS
+
+### Adjusting Settings
+
+Open settings.json and simply point the path to the folder with your data. That's it! 
+
+Additionally, there are other parameters to adjust for your applications from visual formatting to the port to run on. However, none of these settings are necessary to adjust in order for FIDS to run besides defining the path to the data.
+
+### Starting FIDS
+
+Just run the FIDS file and wait for the server IP to show up (e.g. 127.0.0.1:80) 
+
+```python
+python FIDS.py
+```
+
 ## Sample View
 ![sample view](https://github.com/the-rccg/FITS_dashboard/blob/master/assets/img/FIDS_screenshot.png)
 
