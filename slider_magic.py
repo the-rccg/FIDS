@@ -12,8 +12,9 @@ def get_log_range(column_min, column_max, log_base=10):
     """ returns the log range as tuple """
     if column_min > 0:
         log_range = (
-            math.floor(math.log(column_min, log_base)), 
-            math.ceil(math.log(column_min, log_base) 
+            math.floor(math.log(column_min, log_base)),
+            math.ceil(
+                math.log(column_min, log_base)
                 + math.log(column_max/column_min, log_base)
             )
         )
@@ -22,31 +23,33 @@ def get_log_range(column_min, column_max, log_base=10):
             -math.ceil(math.log(-column_min, log_base)), 
             math.ceil(math.log(column_min, log_base))
         )
-    else: 
+    else:
         log_range = (
-            0, 
-            math.ceil(0+math.log(column_max, log_base)
-            )
+            0,
+            math.ceil(0+math.log(column_max, log_base))
         )
     return log_range
 
 
 def construct_log_range(column_name, column_details):
     """ construct slider with log markings adjusting for negatives """
-    marks = {'0':0, **{
-        (i): '{}'.format(10 ** i) 
-        for i in range(*get_log_range(column_name, column_details))
-    }}
-    return marks    
+    marks = {
+        '0': 0,
+        **{
+            (i): '{}'.format(10 ** i) 
+            for i in range(*get_log_range(column_name, column_details))
+        }
+    }
+    return marks
 
 
 def get_log_range_slider(column_name, column_details, id_given, marks=None, log_base=10, granularity=1000):
     """ create a log range slider """
     log_range = get_log_range(
-        column_details[column_name]['min'], 
-        column_details[column_name]['max'], 
+        column_details[column_name]['min'],
+        column_details[column_name]['max'],
         log_base=log_base)
-    marks = {i:'{}'.format(log_base**i) for i in range(log_range[0], log_range[1]+1)}
+    marks = {i: '{}'.format(log_base**i) for i in range(log_range[0], log_range[1]+1)}
     return get_range_slider(column_name, id_given, log_range, marks=marks, granularity=granularity)
 
 
@@ -65,7 +68,7 @@ def get_range_slider(column_name, id_given, col_range, marks=None, granularity=1
     """
     # Automatically set marks if not defined
     if not marks:
-        marks = get_marks(col_range, certainty=certainty) #{i:'{}'.format(i) for i in [col_range[0], col_range[1]]}
+        marks = get_marks(col_range, certainty=certainty)
     # Create Slider Object
     slider = dcc.RangeSlider(
         id = id_given,
@@ -89,10 +92,10 @@ def get_range_slider(column_name, id_given, col_range, marks=None, granularity=1
 
 
 def get_marks(col_range, certainty=2, include_zero=0.1):
-    """ returns {number:'formatted_number'} with proper formatting for marks 
-    
+    """ returns {number:'formatted_number'} with proper formatting for marks
+
     NOTE: 
-    - Slider unable to show with keys of "xxx.0" format 
+    - Slider unable to show with keys of "xxx.0" format
       (see https://github.com/plotly/dash-core-components/issues/159)
     """
     sig_digits = get_sig_digits(col_range, certainty)
@@ -114,14 +117,14 @@ def get_marks(col_range, certainty=2, include_zero=0.1):
 
 def get_sig_digits(col_range, certainty):
     """
-    given tuple and certainty, 
-    return number of significant digits necessary to differentiate 
+    given tuple and certainty,
+    return number of significant digits necessary to differentiate
     between the two numbers and add a desired further certainty
     """
     sig_digit = round(abs(np.log10(1-np.min(np.abs(col_range))/np.max(np.abs(col_range)))))+certainty
     if not np.isfinite(sig_digit):
         print(col_range)
-        sig_digit=0
+        sig_digit = 0
     sig_digit = int(max(sig_digit, certainty))
     return sig_digit
 

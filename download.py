@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Pack download helper funcitons 
-"""
+""" Pack download helper functions. """
 # Modules
 import numpy as np
 import pandas as pd
@@ -14,7 +12,7 @@ from pprint import pprint
 
 
 def unpack_vars(variables):
-    """ unpack variables parsed via http request """
+    """ Unpack variables parsed via http request. """
     for key in variables:
         if variables[key]:
             if variables[key][0] == '[':
@@ -24,7 +22,7 @@ def unpack_vars(variables):
                     variables[key] = re.sub(
                         r"([-\d]+)\s+([\d-]+)",
                         r"\1,\2",
-                        variables[key].replace("\n ",",")
+                        variables[key].replace("\n ", ",")
                     )
                     # Remove white spaces, translate to list, reformat as array
                     variables[key] = np.array(ast.literal_eval(variables[key].replace(" ", "")))
@@ -39,7 +37,7 @@ def unpack_vars(variables):
 
 
 def generate_df(return_data, chunk_size_mb):
-    """ send in chunks from one large dataframe """
+    """ Send in chunks from one large dataframe. """
     row_count = return_data[list(return_data.keys())[0]].shape[0]
     return_size_mb = np.sum([return_data[key].nbytes for key in return_data.keys()])/1024/1024
     chunk_size = int(row_count/(return_size_mb*chunk_size_mb))
@@ -47,13 +45,13 @@ def generate_df(return_data, chunk_size_mb):
     return_data = pd.DataFrame(return_data)
     i = 0
     yield return_data[i:i+chunk_size].to_csv(index=False, header=True)
-    while i < row_count: 
+    while i < row_count:
         yield return_data[i:i+chunk_size].to_csv(index=False, header=False)
         i += chunk_size
 
 
 def generate_tmp(return_data, chunk_size_mb):
-    """ send in chunks from one large tempfile """
+    """ Send in chunks from one large tempfile. """
     tf = tempfile.TemporaryFile(mode='w+t', newline='')
     pd.DataFrame(return_data).to_csv(tf, index=False, encoding='utf-8')
     del return_data  # Free up space asap
@@ -63,14 +61,14 @@ def generate_tmp(return_data, chunk_size_mb):
     chunk_size = chunk_size_mb*1024*1024
     print("  Chunk Size: {:,.2f} mb".format(chunk_size_mb))
     i = 0
-    while i < size: 
+    while i < size:
         yield tf.read(chunk_size)
         i += chunk_size
     tf.close()
 
 
 def generate_small_file(return_data, return_size_mb):
-    """ send small file from memory """
+    """ Send small file from memory. """
     # String Buffer
     str_io = io.StringIO()
     pd.DataFrame(return_data).to_csv(str_io, index=False)

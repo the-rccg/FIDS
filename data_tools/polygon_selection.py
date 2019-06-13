@@ -1,6 +1,7 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 import numpy as np
 from numba import jit
+from .data_selector import reduce_cols, get_axis_data, adjust_axis_type
 
 
 # Algorithms
@@ -8,7 +9,8 @@ from numba import jit
 
 @jit(nopython=True, parallel=True)
 def vec_point_in_polygon(x, y, poly):
-    """
+    """ Determine whether a set of points are inside a polygon.
+
     x, y -- x and y coordinates of point, as 1D NumPy Array
     poly -- 2D collection of shape [(x, y), (x, y), ...]
     -------------------------------------------------
@@ -38,12 +40,13 @@ def vec_point_in_polygon(x, y, poly):
 
 @jit(nopython=True, parallel=True, nogil=True, fastmath=True)
 def point_in_polygon(x, y, poly):
-    """
+    """ Determine whether a point is inside a polygon.
+
     x, y -- x and y coordinates of point, as 1D NumPy Array
     poly -- 2D collection of shape [(x, y), (x, y), ...]
     -------------------------------------------------
     PNPOLY - Point Inclusion in Polygon Test
-    W. Randolph Franklin (WRF) 
+    W. Randolph Franklin (WRF)
     source:  https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
     adapted by RCCG (github.com/the-rccg)
     """
@@ -51,21 +54,20 @@ def point_in_polygon(x, y, poly):
     i = 0            # First Vertex
     j = num - 1      # Previous Vertex
     # Explicit first lop
-    c = ((poly[i][1] > y) != (poly[j][1] > y)) and \
-                (x < poly[i][0] + (poly[j][0] - poly[i][0]) * (y - poly[i][1]) /
-                                (poly[j][1] - poly[i][1]))
+    c = ((poly[i][1] > y) != (poly[j][1] > y)) \
+        and (x < poly[i][0] + (poly[j][0] - poly[i][0]) * (y - poly[i][1]) / (poly[j][1] - poly[i][1]))
     # Loop over vertices
     for i in range(1, num):
         j = i-1
-        if ((poly[i][1] > y) != (poly[j][1] > y)) and \
-                (x < poly[i][0] + (poly[j][0] - poly[i][0]) * (y - poly[i][1]) /
-                                (poly[j][1] - poly[i][1])):
+        if ((poly[i][1] > y) != (poly[j][1] > y)) \
+                and (x < poly[i][0] + (poly[j][0] - poly[i][0]) * (y - poly[i][1]) / (poly[j][1] - poly[i][1])):
             c = not c
     return c
 
 
 @jit(nopython=True, parallel=True, nogil=True, fastmath=True)
 def points_in_polygon(x, y, vertices):
+    """ Determine whether a point is inside a polygon. """
     flags = np.empty(x.shape[0], dtype=np.bool_)
     for i in range(x.shape[0]):
         flags[i] = point_in_polygon(x[i], y[i], vertices)
@@ -77,7 +79,7 @@ def points_in_polygon(x, y, vertices):
 
 #@jit(nopython=True, parallel=True)
 def get_data_in_polygon(xaxis_name, yaxis_name, vertices, return_data):
-    """ Return all data in/or on polygon from bricks
+    """ Return all data in/or on polygon from bricks.
 
     Iteratively appends data from bricks
     """
@@ -90,12 +92,11 @@ def get_data_in_polygon(xaxis_name, yaxis_name, vertices, return_data):
     return return_data
 
 
-from .data_selector import reduce_cols, get_axis_data, adjust_axis_type
 def get_data_in_selection(xaxis_name, yaxis_name, vertices, return_data, axis_name_list,
                           xaxis_type='linear', yaxis_type='linear',
                           xaxis_two_name='', xaxis_operator='', yaxis_two_name='', yaxis_operator=''):
-    """ Return data in the selected area
-    
+    """ Return data in the selected area.
+
     Adjust for Combined Axes, Scaled Axes, and Polygon Selection
     """
     # 1. Combined column fix: get_axis_data -> [axis_name, axis_values]
@@ -115,8 +116,8 @@ def get_data_in_selection(xaxis_name, yaxis_name, vertices, return_data, axis_na
 
 
 def reduce_vertices(prel_vertices):
-    """ Remove redundant vertices from list 
-    
+    """ Remove redundant vertices from list.
+
     Sometimes duplicates were created in plotly -- legacy, the bug seems to be resolved
     """
     vertices = []

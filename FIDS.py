@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-"""
-FITS Dash App
-Quickly sketch and explore data tables and relations sae in FITS format 
+""" FIDS
+
+Dashboard to interactively visualize and slice FITS datafiles
+Quickly sketch and explore data tables and relations sae in FITS format
 
 Line-length:  84 (since thats VSCode on 1080 vertical)
 
@@ -25,7 +26,7 @@ from data_tools import get_column_names, reduced_axis_list, args_to_criteria, up
 from data_tools import get_all_data, get_sample_data, get_subsetdata
 from data_tools import get_limits, reduce_cols, slice_data, get_relevant_bricks
 from data_tools import get_axis_data, format_two_columns, adjust_axis_type
-# Polygon 
+# Polygon
 from data_tools import get_data_in_polygon, get_data_in_selection
 # Sliders
 from slider_magic import get_marks, get_range_slider, get_log_range_slider
@@ -69,7 +70,7 @@ filename_list = get_valid_filelist(settings['folderpath'], settings['filetypes']
 data = get_dict_of_files(filename_list, settings['folderpath'])
 
 # Get File Descriptions
-data_counts = get_data_counts(data, ftype=settings['filetypes'][0])  
+data_counts = get_data_counts(data, ftype=settings['filetypes'][0])
 # Defining columns
 # TODO: Read or allow import of UNITS. Maybe visual initialization as an app?
 column_names_file = sorted(settings['columns_to_use'])
@@ -95,7 +96,7 @@ display_count_step = settings['display_count_granularity']
 brick_data_types = map_types(get_brick_data_types(data, filename_list))
 allowed_types = settings["allowed_slider_dtypes"]
 slice_col_list = [
-    col_name for col_name in column_names 
+    col_name for col_name in column_names
     if brick_data_types[col_name] in allowed_types
 ][:settings["max_slider_count"]]
 
@@ -103,7 +104,7 @@ slice_col_list = [
 brick_column_details = load_json('brick_column_details.json', savepath=settings['savepath'])
 # Cut out bricks without computed details
 filename_list = [
-    filename for filename in filename_list 
+    filename for filename in filename_list
     if filename in brick_column_details.keys()
 ]
 column_details = {
@@ -118,13 +119,13 @@ print("Reduced Slice Col List: ", slice_col_list)
 
 # Set up range sliders
 slider_style = {
-    #'height':34, 
-    #'width':'97%', 
+    #'height':34,
+    #'width':'97%',
     #'margin':'0px 0px 0px 0px',  # above right below left
     'padding': '0px 20px 3px 20px', # above right below left
     'width': 'inherit'
 }
-# List of: DIV( DIV( title ), DIV( slider ) ) 
+# List of: DIV( DIV( title ), DIV( slider ) )
 slice_list = [
     html.Div(
         # TODO: Fix Log Sliders
@@ -136,17 +137,17 @@ slice_list = [
         #    granularity = settings['selection_granularity']
         #)
         get_range_slider(
-                column_name, 
-                id_given='{}'.format(column_name), 
+                column_name,
+                id_given='{}'.format(column_name),
                 col_range=[
-                    column_details[column_name]['min'], 
+                    column_details[column_name]['min'],
                     column_details[column_name]['max']
                 ],
                 marks=None,
                 granularity=settings['selection_granularity'],
                 certainty=settings["slider_number_certainty"]
         ),
-        id='{}_div'.format(column_name), 
+        id='{}_div'.format(column_name),
         style={
             **slider_style,
             'display': 'none'
@@ -155,11 +156,11 @@ slice_list = [
     for column_name in slice_col_list
 ]
 slice_inputs = [
-    dash.dependencies.Input('{}'.format(col_name), 'value') 
+    dash.dependencies.Input('{}'.format(col_name), 'value')
     for col_name in slice_col_list
 ]
 slice_states = [
-    dash.dependencies.State('{}'.format(col_name), 'value') 
+    dash.dependencies.State('{}'.format(col_name), 'value')
     for col_name in slice_col_list
 ]
 ####################################################################################
@@ -172,14 +173,14 @@ if debug:
             children=[
                 # Status
                 html.Div(
-                    id = 'debug-status',
-                    children = 'debug status'
+                    id='debug-status',
+                    children='debug status'
                 ),
                 # Shutdown Button
                 html.Button(
-                    'shutdown app', 
+                    'shutdown app',
                     id='shutdown-button',
-                    className='button-primary', 
+                    className='button-primary',
                     type='button-primary'
                 ),
             ],
@@ -190,11 +191,11 @@ if debug:
     debug_elements = [
         html.Div(
             debug_elements,
-            style={ 
-                'border': 'solid 1px #A2B1C6', 
-                'border-radius': '5px', 
-                'padding': '5px', 
-                'margin-top': '20px', 
+            style={
+                'border': 'solid 1px #A2B1C6',
+                'border-radius': '5px',
+                'padding': '5px',
+                'margin-top': '20px',
             }
         )]
 
@@ -212,6 +213,7 @@ dropdown_style = {
     'padding': '3px'
 }
 
+
 def add_explanation(obj, title=""):
     """ Wrap a DCC object with an explanation on mouse-over """
     # Inherit "title" from child
@@ -227,9 +229,11 @@ def add_explanation(obj, title=""):
         base_style = {}
     return html.Abbr(obj, title=title, style={**base_style, 'border': 'none', 'text-decoration': 'none'})
 
+
 def Dropdown(*args, **kwargs):
-    """ wrap all Dropdowns with an explanation """
+    """ Wrap all Dropdowns with an explanation """
     return add_explanation(dcc.Dropdown(*args, **kwargs))
+
 
 def create_formatter(axis_naming, axis_title, column_list):
     """ Return collapsable formatting div """
@@ -255,13 +259,13 @@ def create_formatter(axis_naming, axis_title, column_list):
                                     placeholder='Axis scaling',
                                     id='{}-type'.format(axis_naming),
                                     options=[
-                                        {'label': i, 'value': i} 
-                                            for i in ['Linear', 'Log Scale', 'Ln()', 'Log10()', 'e^()', '10^()']
+                                        {'label': i, 'value': i}
+                                        for i in ['Linear', 'Log Scale', 'Ln()', 'Log10()', 'e^()', '10^()']
                                     ],
                                     value='Linear'
-                                ), 
+                                ),
                                 style={
-                                    'width': '49%', 
+                                    'width': '49%',
                                     'display': 'inline-block'
                                 }
                             ),
@@ -271,8 +275,8 @@ def create_formatter(axis_naming, axis_title, column_list):
                                     placeholder='Axis orientation',
                                     id='{}-orientation'.format(axis_naming),
                                     options=[
-                                        {'label': i, 'value': i} 
-                                            for i in ['increasing', 'decreasing']
+                                        {'label': i, 'value': i}
+                                        for i in ['increasing', 'decreasing']
                                     ],
                                     value='increasing',
                                 ),
@@ -292,8 +296,8 @@ def create_formatter(axis_naming, axis_title, column_list):
                                             placeholder='Operator',
                                             id='{}-operator'.format(axis_naming),
                                             options=[
-                                                {'label':i, 'value':i}
-                                                    for i in ['+', '-', '/', 'x']
+                                                {'label': i, 'value': i}
+                                                for i in ['+', '-', '/', 'x']
                                             ],
                                             value=''
                                         ),
@@ -309,8 +313,8 @@ def create_formatter(axis_naming, axis_title, column_list):
                                             placeholder='Column',
                                             id='{}-combined-column'.format(axis_naming),
                                             options=[
-                                                {'label': i, 'value': i} 
-                                                    for i in column_list
+                                                {'label': i, 'value': i}
+                                                for i in column_list
                                             ],
                                             value=''
                                         ),
@@ -323,8 +327,8 @@ def create_formatter(axis_naming, axis_title, column_list):
                                     )
                                 ],
                                 style={
-                                    'display': 'table', 
-                                    'width':'100%'
+                                    'display': 'table',
+                                    'width': '100%'
                                 }
                             )
                         ],
@@ -357,42 +361,41 @@ app.title = 'FITS Dashboard: {}'.format(settings['name'])
 # TODO: Move to CSS Grid from mix of Float and Table
 app.layout = html.Div([
     html.Div([
-        
+
         # Element 1: Data File Selector
         html.Div(
             Dropdown(
                 id='brick_selector',
                 placeholder='Select FITS files...',
                 options=[
-                    {'label': '{}'.format(i), 'value': i} 
-                        for i in filename_list
+                    {'label': '{}'.format(i), 'value': i}
+                    for i in filename_list
                 ],
                 multi=True
             ),
-            style=dropdown_style 
+            style=dropdown_style
         ),
 
         # Element 2: Data Amount Selector
         html.Div(
             dcc.Slider(
                 id='display_count_selection',
-                #placeholder='',
                 min=0,
                 max=display_count_max,
                 value=display_count,
                 step=display_count_step,
                 marks={
-                    0: '0', 
+                    0: '0',
                     display_count_max: "{:,}".format(display_count_max)
                 }
             ),
-            style={**slider_style, 'height':'34px'}
+            style={**slider_style, 'height': '34px'}
             #html.Div(id="selection-container")
         ),
 
         # Element 3: New Subsample Generator
         # To Be Coded
-            
+
         # Element 4: Axes selections, orientation, type
         # Axis Selection
         html.Div(
@@ -405,8 +408,8 @@ app.layout = html.Div([
                             id='xaxis_column',
                             placeholder='Select X-Axis...',
                             options=[
-                                {'label': i, 'value': i} 
-                                    for i in selected_columns
+                                {'label': i, 'value': i}
+                                for i in selected_columns
                             ],
                             value=settings['default_x_column']
                         ),
@@ -415,8 +418,7 @@ app.layout = html.Div([
                         create_formatter('xaxis', 'X-Axis', selected_columns),
                     ],
                     style={
-                        'width': '49.5%', 
-                        #'float': 'left',
+                        'width': '49.5%',
                         'display': 'inline-block'
                     }
                 ),
@@ -428,8 +430,8 @@ app.layout = html.Div([
                             id='yaxis_column',
                             placeholder='Select Y-Axis...',
                             options=[
-                                {'label': i, 'value': i} 
-                                    for i in selected_columns
+                                {'label': i, 'value': i}
+                                for i in selected_columns
                             ],
                             value=settings['default_y_column']
                         ),
@@ -437,8 +439,8 @@ app.layout = html.Div([
                         create_formatter('yaxis', 'Y-Axis', selected_columns),
                     ],
                     style={
-                        'width': '49.5%', 
-                        'float': 'right', 
+                        'width': '49.5%',
+                        'float': 'right',
                         'display': 'inline-block'
                     }
                 ),
@@ -447,7 +449,7 @@ app.layout = html.Div([
             ],
             style=dropdown_style
         ),
-                        
+
         # Element 5: Color coding
         html.Div(
             [
@@ -456,8 +458,8 @@ app.layout = html.Div([
                     id='caxis_column',
                     placeholder='Select Color-Axis...',
                     options=[
-                        {'label': i, 'value': i} 
-                            for i in selected_columns
+                        {'label': i, 'value': i}
+                        for i in selected_columns
                     ],
                     value=settings['default_color_column']
                 ),
@@ -466,7 +468,7 @@ app.layout = html.Div([
             ],
             style=dropdown_style
         ),
-                
+
         # Element 6: Size coding
         html.Div(
             [
@@ -474,13 +476,13 @@ app.layout = html.Div([
                     id='saxis_column',
                     placeholder='Select Size-Axis...',
                     options=[
-                        {'label': i, 'value': i} 
-                            for i in selected_columns
+                        {'label': i, 'value': i}
+                        for i in selected_columns
                     ],
                 ),
                 # TODO: Scaling sizes
             ],
-            style=dropdown_style 
+            style=dropdown_style
         ),
 
         # Element 7: Add column slice sliders
@@ -490,8 +492,8 @@ app.layout = html.Div([
                     id='column_slicer',
                     placeholder='Select fields to slice on...',
                     options=[
-                        {'label': '{}'.format(col_name), 'value': col_name} 
-                            for col_name in slice_col_list
+                        {'label': '{}'.format(col_name), 'value': col_name}
+                        for col_name in slice_col_list
                     ],
                     multi=True
                 )
@@ -502,7 +504,7 @@ app.layout = html.Div([
         # Element 7.1: Sliders
         *slice_list,
 
-        
+
         # Graph 1: Scatter Plot
         html.Div(
             dcc.Loading(
@@ -523,14 +525,14 @@ app.layout = html.Div([
                     },
                     style={
                         'responsive': 'true',
-                        'height': 'inherit', 
+                        'height': 'inherit',
                         'width': 'inherit'
                     }
                 ),
                 style={
-                    #'border': 'solid 1px #A2B1C6', 
-                    #'border-radius': '0px', 
-                    'padding': '3px', 
+                    #'border': 'solid 1px #A2B1C6',
+                    #'border-radius': '0px',
+                    'padding': '3px',
                     'width': 'inherit',
                     'height': 'inherit',
                     #'resize': 'vertical',
@@ -539,7 +541,7 @@ app.layout = html.Div([
                 }
             ),
             style={
-                'width': 'inherit', 
+                'width': 'inherit',
                 'height': 'inherit'
             }
         ),
@@ -548,9 +550,9 @@ app.layout = html.Div([
         html.Details([
             # 8.1 Collapsable Header
             html.Summary(
-                'Download Data', 
+                'Download Data',
                 style={'padding': '0px 0px 0px 5px'}
-            ),  
+            ),
             # 8.2 Download Section
             html.Div(
                 [
@@ -574,7 +576,7 @@ app.layout = html.Div([
                                         id='download_file',
                                         placeholder='Select file to download...',
                                         options=[
-                                            {'label': '{}'.format(i), 'value': i} 
+                                            {'label': '{}'.format(i), 'value': i}
                                             for i in filename_list
                                         ],
                                         multi=False,
@@ -588,8 +590,8 @@ app.layout = html.Div([
                                 # 8.2.3.1 Download Button
                                 html.A(
                                     html.Button(
-                                        'Download *ENTIRE FILE*', 
-                                        className='button-primary', 
+                                        'Download *ENTIRE FILE*',
+                                        className='button-primary',
                                         type='button-primary',
                                         id='entire-file-button'
                                     ),
@@ -614,7 +616,7 @@ app.layout = html.Div([
                         }
                     ),
                     # 8.2.2: Download Selected Criteria
-                    html.Div( 
+                    html.Div(
                         [
                             # 8.2.4.1 Description
                             html.Div(
@@ -644,7 +646,7 @@ app.layout = html.Div([
                                         placeholder='Select fields to download...',
                                         options=[
                                             {'label': '{}'.format(col_name), 'value': col_name}
-                                                for col_name in column_names
+                                            for col_name in column_names
                                         ],
                                         multi=True,
                                     ),
@@ -660,7 +662,7 @@ app.layout = html.Div([
                                         html.Button(
                                             'Download *BY CRITERIA*',
                                             id='criteria_download_button',
-                                            className='button-primary', 
+                                            className='button-primary',
                                             type='button-primary',
                                             n_clicks=0
                                         ),
@@ -700,12 +702,12 @@ app.layout = html.Div([
         # Element 9: Debug Tools
         *debug_elements,
 
-    ], 
-    style = { 
-        'border': 'solid 1px #A2B1C6', 
-        'border-radius': '5px', 
-        'padding': '5px', 
-        #'margin-top': '20px', 
+    ],
+    style = {
+        'border': 'solid 1px #A2B1C6',
+        'border-radius': '5px',
+        'padding': '5px',
+        #'margin-top': '20px',
         'flex': '1 0 auto'
     }),
 
@@ -739,11 +741,11 @@ app.layout = html.Div([
                 )
             ],
             style={
-                'font-size': '14px', 
+                'font-size': '14px',
                 'padding': '5px'
             }
-        ), 
-        className='footer', 
+        ),
+        className='footer',
         style={'flex-shrink': '0'}
     ),
     #html.Footer('test',style={'flex-shrink': '0'})
@@ -758,8 +760,7 @@ if debug:
         [dash.dependencies.Input('shutdown-button', 'n_clicks')]
     )
     def shutdown(action):
-        #import sys
-        #sys.exit(0)
+        """ shut down flask server via werkzeug """
         if action:
             if action > 1:
                 func = request.environ.get('werkzeug.server.shutdown')
@@ -805,14 +806,14 @@ if debug:
         *slice_states
     ]
 )
-def params_to_link(n_clicks, selected_data, 
+def params_to_link(n_clicks, selected_data,
                    xaxis_name, yaxis_name, caxis_name, saxis_name,
                    xaxis_type, yaxis_type, #caxis_type, saxis_type,
                    xaxis_two_name, yaxis_two_name, caxis_two_name,
-                   xaxis_operator, yaxis_operator, 
+                   xaxis_operator, yaxis_operator,
                    xaxis_second_name, yaxis_second_name,
                    bricks_selected, download_columns, *args):
-   
+    """ Update status and link for downloading by encoding all criteria into the URL. """
     # Check:  No click
     if (not n_clicks):
         return [None, None]
@@ -829,7 +830,7 @@ def params_to_link(n_clicks, selected_data,
         return [None, status]
     # Setup:  Axes to include
     axis_name_list = reduced_axis_list(
-        download_columns, xaxis_name, yaxis_name, caxis_name, saxis_name, 
+        download_columns, xaxis_name, yaxis_name, caxis_name, saxis_name,
         xaxis_two_name, yaxis_two_name, caxis_two_name
     )
     parameters['axis_name_list'] = axis_name_list
@@ -855,12 +856,12 @@ def params_to_link(n_clicks, selected_data,
             y_interval = selected_data['range']['y']
             if (xaxis_name in criteria_dict.keys()) and (not is_xaxis_combined):
                 criteria_dict[xaxis_name] = update_interval(
-                    criteria_dict, xaxis_name, 
+                    criteria_dict, xaxis_name,
                     np.min(x_interval), np.max(x_interval)
                 )
             if (yaxis_name in criteria_dict.keys() )and (not is_yaxis_combined):
                 criteria_dict[yaxis_name] = update_interval(
-                    criteria_dict, yaxis_name, 
+                    criteria_dict, yaxis_name,
                     np.min(y_interval), np.max(y_interval)
                 )
             status = update_status(status, [x_interval, y_interval], "Rectangle Selected", formats=["-","-"])
@@ -873,7 +874,7 @@ def params_to_link(n_clicks, selected_data,
             xmax, ymax = vertices.max(0)
             if (xaxis_name in criteria_dict.keys()) and (not is_xaxis_combined):
                 criteria_dict[xaxis_name] = update_interval(
-                    criteria_dict, xaxis_name, 
+                    criteria_dict, xaxis_name,
                     xmin, xmax
                 )
             if (yaxis_name in criteria_dict.keys()) and (not is_yaxis_combined):
@@ -891,24 +892,24 @@ def params_to_link(n_clicks, selected_data,
         return ['/dash/selected_download.csv?'+urlencode(parameters), 'Please confirm by pressing the button again!']
 
 
-@app.server.route('/dash/selected_download.csv') 
+@app.server.route('/dash/selected_download.csv')
 def download_selection():
-    """ Serve download of defined data 
-    
-    TODO: 
+    """Serve download of defined data.
+
+    TODO:
     - Fix the delay between updating URL and clicking the download link
-    
+
     """
     # Unpack arguments - TODO: use proper decoding
     # Repack to types and nested types
     variables = unpack_vars(request.args.to_dict()) #urllib.parse.parse_qs(str(request.query_string))
     # 1. Get relevant data based on slice criteria
     return_data = get_all_data(
-        variables['bricks_selected'], 
-        variables['axis_name_list'], 
-        variables['criteria_dict'], 
-        brick_column_details, 
-        brick_data_types, 
+        variables['bricks_selected'],
+        variables['axis_name_list'],
+        variables['criteria_dict'],
+        brick_column_details,
+        brick_data_types,
         data
     )
     # 2. Cut to visual selection
@@ -916,10 +917,10 @@ def download_selection():
         # Reduce data to selection polygon
         t1 = dt.now()
         return_data = get_data_in_selection(
-            variables['xaxis_name'], variables['yaxis_name'], variables['vertices'], 
+            variables['xaxis_name'], variables['yaxis_name'], variables['vertices'],
             return_data, variables['axis_name_list'],
             xaxis_type=variables['xaxis_type'], yaxis_type=variables['yaxis_two_name'],
-            xaxis_two_name=variables['xaxis_two_name'], xaxis_operator=variables['xaxis_operator'], 
+            xaxis_two_name=variables['xaxis_two_name'], xaxis_operator=variables['xaxis_operator'],
             yaxis_two_name=variables['yaxis_two_name'], yaxis_operator=variables['yaxis_operator']
         )
         print("  polygon slicing: {}".format(dt.now()-t1))
@@ -953,19 +954,19 @@ def download_selection():
     [dash.dependencies.Input('download_file', 'value')]
 )
 def update_download_link(file_list):
-    """ Return link to download multiple raw files """
+    """ Return link to download multiple raw files. """
     if not file_list or file_list == "None":
         return [None, None]
     if type(file_list) != list:
         file_list = [file_list]
     return [
-        '/dash/download?{}'.format(urlencode({'file_list':file_list})), 
+        '/dash/download?{}'.format(urlencode({'file_list':file_list})),
         file_list[0]
     ]
 
-@app.server.route('/dash/download') 
+@app.server.route('/dash/download')
 def download_file():
-    """ Retrieve filename and send to client via flask """
+    """ Retrieve filename and send to client via flask. """
     #pprint(request.args.to_dict())
     args = unpack_vars(request.args.to_dict())
     file_list = args['file_list']
@@ -986,61 +987,61 @@ def download_file():
 
 
 ####################################################################################
-#   Sliders 
+#   Sliders
 ####################################################################################
 output_list = [
     dash.dependencies.Output('{}_div'.format(column_name), 'style')
     for column_name in slice_col_list
 ]
 @app.callback(
-        output_list,
-        [dash.dependencies.Input('column_slicer', 'value')]
-        )
+    output_list,
+    [dash.dependencies.Input('column_slicer', 'value')]
+)
 def hide_unhide_sliders(criteria_show_list):
-    """ Return Div.styles to hide and unhide divs """
+    """ Return Div.styles to hide and unhide divs. """
     if not criteria_show_list:
         criteria_show_list = []
     # Show if column is selected, otherwise hide
     style_dict = {
         '{}_div'.format(column_name):hide_unhide_div(
-            (column_name in criteria_show_list), 
+            (column_name in criteria_show_list),
             base_style=slider_style
-        ) 
+        )
         for column_name in slice_col_list
     }
     return list(style_dict.values())
 
 @app.callback(
     [
-        dash.dependencies.Output('{}'.format(col_name), 'min') 
+        dash.dependencies.Output('{}'.format(col_name), 'min')
         for col_name in slice_col_list
     ] + [
-        dash.dependencies.Output('{}'.format(col_name), 'max') 
+        dash.dependencies.Output('{}'.format(col_name), 'max')
         for col_name in slice_col_list
     ] + [
-        dash.dependencies.Output('{}'.format(col_name), 'marks') 
+        dash.dependencies.Output('{}'.format(col_name), 'marks')
         for col_name in slice_col_list
     ],
     [dash.dependencies.Input('brick_selector', 'value')]
 )
 def update_slice_limits(bricks_selected):
-    """ Update limits on sliders depending on bricks selected """
+    """ Update limits on sliders depending on bricks selected. """
     if bricks_selected:
         # Min
         mins = [
             parse_datatype(
                 np.min([
-                    brick_column_details[brick_name][col_name]['min'] 
+                    brick_column_details[brick_name][col_name]['min']
                     for brick_name in bricks_selected
                 ])
             )
             for col_name in slice_col_list
-        ] 
+        ]
         # Max
         maxs = [
             parse_datatype(
                 np.max([
-                    brick_column_details[brick_name][col_name]['max'] 
+                    brick_column_details[brick_name][col_name]['max']
                     for brick_name in bricks_selected
                 ]
             ))
@@ -1056,12 +1057,12 @@ def update_slice_limits(bricks_selected):
         mins = [
             parse_datatype(column_details[col_name]['min'])
             for col_name in slice_col_list
-        ] 
+        ]
         # Max
         maxs = [
             parse_datatype(column_details[col_name]['max'])
             for col_name in slice_col_list
-        ]        
+        ]
         # Marks
         marks = [
             get_marks(np.array([mins[idx], maxs[idx]]))
@@ -1072,18 +1073,18 @@ def update_slice_limits(bricks_selected):
 
 @app.callback(
     [
-        dash.dependencies.Output('{}_title'.format(col_name), 'children') 
+        dash.dependencies.Output('{}_title'.format(col_name), 'children')
         for col_name in slice_col_list
     ],
     [
         *slice_inputs
     ],
-    [   
+    [
         dash.dependencies.State('brick_selector', 'value')
     ]
 )
 def update_slider_titles(*args):
-    """ Update titles with limit values if applicable """
+    """ Update titles with limit values if applicable. """
     # TODO: Handle arguments nicer than this hack
     bricks_selected = args[-1]
     args = args[:-1]
@@ -1097,7 +1098,7 @@ def update_slider_titles(*args):
             # TODO: Make significant digits dependent on granularity of slider
             marks = get_marks(
                 criteria[slider_col_name],
-                certainty=settings["slider_number_certainty"], 
+                certainty=settings["slider_number_certainty"],
                 include_zero=False)
             title = "{}  ({} - {})".format(
                 title,
@@ -1180,7 +1181,7 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
                  xaxis_orientation, yaxis_orientation, caxis_orientation,
                  xaxis_second_column, yaxis_second_column, caxis_second_column,
                  display_count, bricks_selected, *args):
-    """ update graph based on new selected variables """
+    """ Update graph based on new selected variables. """
     #print('args: ', args)
     #print('kwargs: ', kwargs)
 
@@ -1220,11 +1221,11 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
         print(axis_name_list)
 
         # Subsample
-        if display_count:    
+        if display_count:
             return_data = get_sample_data(
-                bricks_selected, display_count, axis_name_list, 
+                bricks_selected, display_count, axis_name_list,
                 criteria_dict, brick_column_details,
-                data, 
+                data,
                 brick_data_types, data_counts, settings)
         # ALL DATA
         else:
@@ -1240,9 +1241,9 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
         caxis_name, c_data = get_axis_data(return_data, caxis_name, caxis_operator, caxis_second_column)
         saxis_name, s_data = get_axis_data(return_data, saxis_name)
 
-        # Create Title  
+        # Create Title
         title = format_two_columns('vs.', xaxis_name, yaxis_name)
-        
+
     else:
         x_data = np.array([])
         y_data = np.array([])
@@ -1258,7 +1259,7 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
     if has_caxis:
         caxis_type, caxis_name, c_data = adjust_axis_type(caxis_type, caxis_name, c_data)
 
-    # Format for sending  
+    # Format for sending
     data_dic = {
         'x': x_data,
         'y': y_data

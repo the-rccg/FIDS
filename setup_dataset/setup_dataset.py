@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Setup dataset min/max for slider use in FIDS
+Setup dataset min/max for slider use in FIDS.
 """
 
 # Import
@@ -9,6 +9,8 @@ import json
 from pprint import pprint
 from os import listdir
 from astropy.io import fits
+from .get_file_info import get_missing_brick_info
+from ..io_tools import load_json
 # TODO: Integrate better to run smoothly when starting FIDS
 
 
@@ -22,7 +24,7 @@ filename_list = get_valid_filelist(settings['folderpath'], settings['filetypes']
 data = get_dict_of_files(filename_list, settings['folderpath'])
 
 # Get File Descriptions
-data_counts = get_data_counts(data, ftype=settings['filetypes'][0])  
+data_counts = get_data_counts(data, ftype=settings['filetypes'][0])
 # Defining columns
 # TODO: Read or allow import of UNITS. Maybe visual initialization as an app?
 column_names_file = sorted(settings['columns_to_use'])
@@ -38,10 +40,8 @@ selected_columns.remove(settings['name_column']) #[name for name in column_names
 ########################################################################################
 slice_col_list = column_names#[0:5]
 print("Slice Col List: ", slice_col_list)
-from .get_file_info import get_missing_brick_info
-from ..io_tools import load_json
 brick_column_details = load_json('brick_column_details.json', savepath=settings['savepath'])
 brick_column_details = get_missing_brick_info(
-    data, brick_column_details, filename_list, slice_col_list, 
+    data, brick_column_details, filename_list, slice_col_list,
     acceptable_types=settings['allowed_slider_dtypes'])
 ########################################################################################

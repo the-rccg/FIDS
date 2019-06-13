@@ -6,9 +6,9 @@ import dash_html_components as html
 def hide_unhide_div(truth_statement, base_style={}, debug=False, show='block'):
     """ Return style with display if true """
     if truth_statement or debug:
-        return {**base_style, 'display':show}
+        return {**base_style, 'display': show}
     else:
-        return {**base_style, 'display':'none'}
+        return {**base_style, 'display': 'none'}
 
 
 def update_status(status, variable, text, formats=["[ ]", "[x]"]):
@@ -17,5 +17,5 @@ def update_status(status, variable, text, formats=["[ ]", "[x]"]):
         status = list(status)
     if variable:
         return [*status, html.Div('{} {}: {}'.format(formats[1], text, variable))]
-    else: 
+    else:
         return [*status, html.Div('{} No {}'.format(formats[0], text))]

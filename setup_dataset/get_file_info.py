@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Tools for processing files to get relevant meta information for setting up FIDS
+Tools for processing files to get relevant meta information for setting up FIDS.
 """
 from pprint import pprint
 from io_tools import save_json, load_json, parse_datatype
@@ -15,9 +15,9 @@ def get_missing_brick_info(data, brick_column_details, brick_name_list, column_l
             missing_column_dict[brick_name] = column_list
         else:
             missing_column_dict[brick_name] = [
-                column for column in column_list 
-                if column not in brick_column_details[brick_name] \
-                    and brick_data_types[column] in acceptable_types]
+                column for column in column_list
+                if (column not in brick_column_details[brick_name]) \
+                    and (brick_data_types[column] in acceptable_types])
             missing_column_dict[brick_name] += [
                 column for column in brick_column_details[brick_name]
                 if ('max' not in brick_column_details[brick_name][column] \

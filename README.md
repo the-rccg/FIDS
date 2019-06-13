@@ -1,4 +1,5 @@
-# Introducing FIDS 
+# Introducing FIDS
+
 **A DASHboard for FITS files**
 
 An interface for visualizing large FITS Table data remotely or locally in a dashboard for preliminary analysis of datasets and interactively selecting the data to download.
@@ -10,22 +11,27 @@ Distributed computing through Dask is still being developed to ensure comparable
 [![astropy](http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat)](http://www.astropy.org/)
 
 ## Setup
+
 ### Installing Astropy
-```cmd
+
+```bash
 pip install astropy
 ```
 
 ### Installing Plotly.Dash  (https://dash.plot.ly/installation)
-```pip
+
+```bash
 pip install dash  # The core dash backend
 pip install dash-renderer  # The dash front-end
 pip install dash-html-components  # HTML components
 pip install dash-core-components  # Supercharged components
+pip install dash-auth  # Authorization component
 pip install plotly --upgrade  # Plotly graphing library used in examples
 ```
 
 ### Installing Numba & Dask
-```pip
+
+```bash
 pip install numba
 pip install dask
 ```
@@ -34,7 +40,7 @@ pip install dask
 
 ### Adjusting Settings
 
-Open settings.json and simply point the path to the folder with your data. That's it! 
+Open settings.json and simply point the path to the folder with your data. That's it!
 
 Additionally, there are other parameters to adjust for your applications from visual formatting to the port to run on. However, none of these settings are necessary to adjust in order for FIDS to run besides defining the path to the data.
 
@@ -42,10 +48,10 @@ Additionally, there are other parameters to adjust for your applications from vi
 
 Just run the FIDS file and wait for the server IP to show up (e.g. 127.0.0.1:80) 
 
-```python
+```shell
 python FIDS.py
 ```
 
 ## Sample View
-![sample view](https://github.com/the-rccg/FITS_dashboard/blob/master/assets/img/FIDS_screenshot.png)
 
+![sample view](https://github.com/the-rccg/FITS_dashboard/blob/master/assets/img/FIDS_screenshot.png)

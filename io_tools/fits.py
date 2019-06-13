@@ -6,8 +6,8 @@ from astropy.io import fits
 
 
 def get_fitstable_data(filenamepath, memmap=True):
-    """ Return FITS DataTable from file 
-    
+    """ Return FITS DataTable from file.
+
     FITS Tables are normally located at [1]
     """
     try:
@@ -17,15 +17,15 @@ def get_fitstable_data(filenamepath, memmap=True):
 
 
 def get_data_counts_fits(data):
-    """ Header is fastest way to get number of data points """
+    """ Header is fastest way to get number of data points. """
     return {
-        filename: data[filename].header['NAXIS2'] 
+        filename: data[filename].header['NAXIS2']
         for filename in data.keys()
     }
 
 
 def get_brick_data_types_fits(data, filename_list):
-    """ Return dict of column data types
+    """ Return dict of column data types.
     The bad:    Load entire array in memory
                 dict(data[filename_list[0]].data.dtype.descr)
     The good:   Load just dtypes of numpy array
