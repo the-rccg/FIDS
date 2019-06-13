@@ -90,7 +90,7 @@ def get_data_in_polygon(xaxis_name, yaxis_name, vertices, return_data):
     return return_data
 
 
-from data_selector import reduce_cols, get_axis_data, adjust_axis_type
+from .data_selector import reduce_cols, get_axis_data, adjust_axis_type
 def get_data_in_selection(xaxis_name, yaxis_name, vertices, return_data, axis_name_list,
                           xaxis_type='linear', yaxis_type='linear',
                           xaxis_two_name='', xaxis_operator='', yaxis_two_name='', yaxis_operator=''):

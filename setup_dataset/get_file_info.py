@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+Tools for processing files to get relevant meta information for setting up FIDS
+"""
 from pprint import pprint
 from io_tools import save_json, load_json, parse_datatype
 

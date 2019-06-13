@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+"""
+Convenience functions for selecting data
+"""
+
 import numpy as np
 from datetime import datetime as dt
 import time
 from numba import jit
-from memory_profiler import profile
 
 
 def get_sample_indices(sample_size, total_size):
@@ -87,7 +90,7 @@ def get_sample_data(bricks_selected, display_count, axis_name_list, criteria_dic
         col_name: np.empty(display_count, dtype=brick_data_types[col_name])
         for col_name in axis_name_list
     }
-    print("  memory allocation: {}".format(t1 - dt.now()))
+    print("  memory allocation: {}".format(dt.now()-t1))
     # 1. Adjust for Brick usage: Only use above min, oversample proportionally, etc.
     brick_usage = get_all_bricks_usage(bricks_selected, criteria_dict, brick_column_details)
     bricks_selected = [

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+"""
+Helper functions for processing data in FIDS
+"""
 
 import numpy as np
-from data_selector import get_limits
+from .data_selector import get_limits
 
 
 def get_column_names(data, filename_list, column_names_file, column_names_data):

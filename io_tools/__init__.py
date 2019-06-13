@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+IO toolset for FIDS
+"""
 
 from .io_tools import load_json, save_json
 from .io_tools import get_ftype, parse_datatype, map_types
