@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 from memory_profiler import profile
-# General
 import os
-# Processing
 import numpy as np
-# Data Type support
 import json
-# Import IO Packs
 from .fits import get_fitstable_data, get_data_counts_fits, get_brick_data_types_fits
+
 
 # TODO: Implement other filetypes in the future
 read_fncs = {

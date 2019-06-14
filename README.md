@@ -33,8 +33,12 @@ pip install plotly --upgrade  # Plotly graphing library used in examples
 ### Installing Numba & Dask
 
 ```bash
-pip install numba
-pip install dask
+pip install numba  # JIT Compilation of code
+pip install dask  # Allow distributed computing
+```
+### Installing other dependencies
+```bash
+pip install tqdm  # Progress bar in setup
 ```
 
 ## Running FIDS

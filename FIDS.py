@@ -29,6 +29,7 @@ from data_tools import get_axis_data, format_two_columns, adjust_axis_type
 # Polygon
 from data_tools import get_data_in_polygon, get_data_in_selection
 # Sliders
+from setup_dataset import prepare_brick_info
 from slider_magic import get_marks, get_range_slider, get_log_range_slider
 # Download
 from download import generate_df, generate_tmp, generate_small_file, unpack_vars
@@ -82,7 +83,6 @@ column_names = get_column_names(data, filename_list, column_names_file, column_n
 # Reduce Columns to Useful
 selected_columns = column_names
 selected_columns.remove(settings['name_column']) #[name for name in column_names if name.split('_')[-1] not in ['p50', 'p84', 'p16', 'Exp']]
-#print("Selected Columns: {}".format(selected_columns))
 
 # Draw Params
 display_count_max = settings['display_count_max']
@@ -94,17 +94,23 @@ display_count_step = settings['display_count_granularity']
 # Columns: Use, Slice, etc.
 ####################################################################################
 
-# Getting dtypes
-# Add column criteria selection
+# Slider Columns = Selected Columns with proper dtype
 brick_data_types = map_types(get_brick_data_types(data, filename_list))
 allowed_types = settings["allowed_slider_dtypes"]
-slice_col_list = [
+slice_col_list = sorted([
     col_name for col_name in column_names
     if brick_data_types[col_name] in allowed_types
-][:settings["max_slider_count"]]
+][:settings["max_slider_count"]])
 
 # Get Brick Details
 brick_column_details = load_json('brick_column_details.json', savepath=settings['savepath'])
+
+# Fill in missing data if necessary
+brick_column_details = prepare_brick_info(
+    data, brick_column_details, filename_list, slice_col_list,
+    settings['savepath'], acceptable_types=settings['allowed_slider_dtypes']
+)
+
 # Cut out bricks without computed details
 filename_list = [
     filename for filename in filename_list
@@ -122,23 +128,14 @@ print("Reduced Slice Col List: ", slice_col_list)
 
 # Set up range sliders
 slider_style = {
-    #'height':34,
-    #'width':'97%',
-    #'margin':'0px 0px 0px 0px',  # above right below left
     'padding': '0px 20px 3px 20px', # above right below left
     'width': 'inherit'
 }
 # List of: DIV( DIV( title ), DIV( slider ) )
+# TODO: Fix Log Sliders
+# TODO: Automatically recognize who needs log scale
 slice_list = [
     html.Div(
-        # TODO: Fix Log Sliders
-        # TODO: Automatically recognize who needs log scale
-        #get_log_range_slider(
-        #    column_name,
-        #    column_details,
-        #    id_given = '{}'.format(column_name),
-        #    granularity = settings['selection_granularity']
-        #)
         get_range_slider(
                 column_name,
                 id_given='{}'.format(column_name),

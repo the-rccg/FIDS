@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-IO toolset for FIDS
+IO toolset for FIDS.
 """
 
 from .io_tools import load_json, save_json

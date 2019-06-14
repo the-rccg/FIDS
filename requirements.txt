@@ -11,3 +11,4 @@ flask>=1.0.2
 dask>=1.1.2
 dask-core>=1.1.2
 numba>=0.43.0
+tqdm>=4.32.1

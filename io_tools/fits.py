@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-""" FITS Functions  for IO"""
+"""
+FITS Functions for IO.
+"""
 
 from astropy.io import fits
 
