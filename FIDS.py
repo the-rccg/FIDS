@@ -36,10 +36,13 @@ from download import generate_df, generate_tmp, generate_small_file, unpack_vars
 from div_updating import hide_unhide_div, update_status
 # Dash
 import dash
+from dash.dependencies import Input, Output, State
 import dash_auth
+import plotly.graph_objs as go
+# Components
 import dash_core_components as dcc
 import dash_html_components as html
-import plotly.graph_objs as go
+import dash_bootstrap_components as dbc
 # Web (Flask, etc.)
 from flask import request, session, Response, send_file
 import urllib
@@ -156,11 +159,11 @@ slice_list = [
     for column_name in slice_col_list
 ]
 slice_inputs = [
-    dash.dependencies.Input('{}'.format(col_name), 'value')
+    Input('{}'.format(col_name), 'value')
     for col_name in slice_col_list
 ]
 slice_states = [
-    dash.dependencies.State('{}'.format(col_name), 'value')
+    State('{}'.format(col_name), 'value')
     for col_name in slice_col_list
 ]
 ####################################################################################
@@ -203,7 +206,7 @@ if debug:
 ####################################################################################
 # DASH Application
 ####################################################################################
-external_stylesheets = ['assets/FIDS.css']
+external_stylesheets = [dbc.themes.BOOTSTRAP, 'assets/FIDS.css']
 
 # TODO: Move to external file
 external_userbase = [
@@ -377,6 +380,7 @@ app.layout = html.Div([
         ),
 
         # Element 2: Data Amount Selector
+        # TODO: Display sample size somewhere
         html.Div(
             dcc.Slider(
                 id='display_count_selection',
@@ -394,7 +398,7 @@ app.layout = html.Div([
         ),
 
         # Element 3: New Subsample Generator
-        # To Be Coded
+        # TODO
 
         # Element 4: Axes selections, orientation, type
         # Axis Selection
@@ -422,6 +426,9 @@ app.layout = html.Div([
                         'display': 'inline-block'
                     }
                 ),
+
+                # TODO: Allow switching X <-> Y
+
                 # 4.2: Select Y-Axis
                 html.Div(
                     [
@@ -546,6 +553,10 @@ app.layout = html.Div([
             }
         ),
 
+        # TODO: Graph Styling Section
+        # Set min/max point size
+        # Set colorscale
+
         # Element 8: Download Section
         html.Details([
             # 8.1 Collapsable Header
@@ -657,8 +668,10 @@ app.layout = html.Div([
                                     }
                                 ),
                                 # 8.2.3 Download all data in criteria
+                                # Download
                                 add_explanation(
-                                    html.A(
+                                    #html.A(
+                                    html.Div(
                                         html.Button(
                                             'Download *BY CRITERIA*',
                                             id='criteria_download_button',
@@ -666,10 +679,9 @@ app.layout = html.Div([
                                             type='button-primary',
                                             n_clicks=0
                                         ),
-                                        id='download-criteria-link',
-                                        #download="within_criteria_data.csv",
-                                        href="",
-                                        target="_blank",
+                                    #    id='download-criteria-link',
+                                    #    href="",
+                                    #    target="_blank",
                                         style={
                                             'padding': '3px',
                                             'display': 'table-cell',
@@ -677,7 +689,36 @@ app.layout = html.Div([
                                         }
                                     ),
                                     title="Download all data points that fall within the criteria of sliders, selection, columns graphed and columns selected additionally"
-                                )
+                                ),
+                                dbc.Modal(
+                                    [
+                                        dbc.ModalHeader("Confirm Download"),
+                                        dbc.ModalBody(
+                                            "Confirm below to download",
+                                            id='download-modal-body'
+                                        ),
+                                        dbc.ModalFooter(
+                                            [
+                                                html.A(
+                                                    dbc.Button(
+                                                        "Download", 
+                                                        id="download-modal-button", 
+                                                        className="button-primary"
+                                                    ),
+                                                    id='download-criteria-link',
+                                                    href="",
+                                                    target="_blank"
+                                                ),
+                                                dbc.Button(
+                                                    "Close", 
+                                                    id="download-modal-close", 
+                                                    className="button"
+                                                )
+                                            ]
+                                        ),
+                                    ],
+                                    id="download-modal",
+                                ),
                             ],
                             style={
                                 'display': 'table',
@@ -749,15 +790,15 @@ app.layout = html.Div([
         style={'flex-shrink': '0'}
     ),
     #html.Footer('test',style={'flex-shrink': '0'})
-])
+], style={'padding': '5px'})
 
 ####################################################################################
 # Debug Elements
 ####################################################################################
 if debug:
     @app.callback(
-        dash.dependencies.Output('debug-status', 'children'),
-        [dash.dependencies.Input('shutdown-button', 'n_clicks')]
+        Output('debug-status', 'children'),
+        [Input('shutdown-button', 'n_clicks')]
     )
     def shutdown(action):
         """ shut down flask server via werkzeug """
@@ -779,30 +820,50 @@ if debug:
 # Get Selection
 ####################################################################################
 @app.callback(
+    Output("download-modal", "is_open"),
     [
-        dash.dependencies.Output('download-criteria-link', 'href'),
-        dash.dependencies.Output('download_column_status', 'children')
+        Input("criteria_download_button", "n_clicks"),
+        Input("download-modal-close", "n_clicks"),
+        Input("download-criteria-link", "href")
     ],
     [
-        dash.dependencies.Input('criteria_download_button', 'n_clicks')
+        State("download-modal", "is_open")
+    ],
+)
+def toggle_modal(n1, n2, n3, is_open):
+    if n3:
+        if (n1 or n2):
+            return not is_open
+        return is_open 
+    else: 
+        return False
+
+@app.callback(
+    [
+        Output('download-criteria-link', 'href'),
+        Output('download_column_status', 'children'),
+        Output('download-modal-body', 'children')
     ],
     [
-        dash.dependencies.State('indicator-graphic', 'selectedData'),
-        dash.dependencies.State('xaxis_column', 'value'),
-        dash.dependencies.State('yaxis_column', 'value'),
-        dash.dependencies.State('caxis_column', 'value'),
-        dash.dependencies.State('saxis_column', 'value'),
-        dash.dependencies.State('xaxis-type', 'value'),
-        dash.dependencies.State('yaxis-type', 'value'),
-        dash.dependencies.State('xaxis-combined-column', 'value'),
-        dash.dependencies.State('yaxis-combined-column', 'value'),
-        dash.dependencies.State('caxis-combined-column', 'value'),
-        dash.dependencies.State('xaxis-operator', 'value'),
-        dash.dependencies.State('yaxis-operator', 'value'),
-        dash.dependencies.State('xaxis-combined-column', 'value'),
-        dash.dependencies.State('yaxis-combined-column', 'value'),
-        dash.dependencies.State('brick_selector', 'value'),
-        dash.dependencies.State('download_columns', 'value'),
+        Input('criteria_download_button', 'n_clicks')
+    ],
+    [
+        State('indicator-graphic', 'selectedData'),
+        State('xaxis_column', 'value'),
+        State('yaxis_column', 'value'),
+        State('caxis_column', 'value'),
+        State('saxis_column', 'value'),
+        State('xaxis-type', 'value'),
+        State('yaxis-type', 'value'),
+        State('xaxis-combined-column', 'value'),
+        State('yaxis-combined-column', 'value'),
+        State('caxis-combined-column', 'value'),
+        State('xaxis-operator', 'value'),
+        State('yaxis-operator', 'value'),
+        State('xaxis-combined-column', 'value'),
+        State('yaxis-combined-column', 'value'),
+        State('brick_selector', 'value'),
+        State('download_columns', 'value'),
         *slice_states
     ]
 )
@@ -812,11 +873,12 @@ def params_to_link(n_clicks, selected_data,
                    xaxis_two_name, yaxis_two_name, caxis_two_name,
                    xaxis_operator, yaxis_operator,
                    xaxis_second_name, yaxis_second_name,
-                   bricks_selected, download_columns, *args):
+                   bricks_selected, download_columns, 
+                   *args):
     """ Update status and link for downloading by encoding all criteria into the URL. """
     # Check:  No click
     if (not n_clicks):
-        return [None, None]
+        return [None, None, None]
     # Setup:  Pre-pack variables
     parameters = locals()
     # Setup:  Remove unnecessary variables
@@ -827,7 +889,8 @@ def params_to_link(n_clicks, selected_data,
     status = update_status(status, bricks_selected, "Bricks Selected")
     # Check:  No Brick
     if (not bricks_selected):
-        return [None, status]
+        status[0] = html.Div('Status: Failed.')
+        return [None, status, status]
     # Setup:  Axes to include
     axis_name_list = reduced_axis_list(
         download_columns, xaxis_name, yaxis_name, caxis_name, saxis_name,
@@ -837,8 +900,10 @@ def params_to_link(n_clicks, selected_data,
     status = update_status(status, axis_name_list, "Columns to Download Selected")
     # Check:  No axis
     if len(axis_name_list) == 0:
-        return [None, status]
+        status[0] = html.Div('Status: Failed.')
+        return [None, status, status]
     # Otherwise Go Ahead-->
+    status[0] = html.Div('Status: Please confirm by clicking "Download" below!')
     t0 = dt.now()
     # Setup:  Include Slider Criteria
     criteria_dict = args_to_criteria(bricks_selected, slice_col_list, brick_column_details, args)
@@ -886,10 +951,15 @@ def params_to_link(n_clicks, selected_data,
     # Pack criteria
     parameters['vertices'] = vertices
     parameters['criteria_dict'] = criteria_dict
-    if n_clicks > 1:
-        return ['/dash/selected_download.csv?'+urlencode(parameters), status]
+    # Require confirmation
+    if not(n_clicks % 2) and (n_clicks!=1):
+        return ["", status, status]
     else:
-        return ['/dash/selected_download.csv?'+urlencode(parameters), 'Please confirm by pressing the button again!']
+        return [
+            '/dash/selected_download.csv?'+urlencode(parameters), 
+            status,
+            status
+        ]
 
 
 @app.server.route('/dash/selected_download.csv')
@@ -948,10 +1018,10 @@ def download_selection():
 ####################################################################################
 @app.callback(
     [
-        dash.dependencies.Output('download-full-link', 'href'),
-        dash.dependencies.Output('download-full-link', 'download')
+        Output('download-full-link', 'href'),
+        Output('download-full-link', 'download')
     ],
-    [dash.dependencies.Input('download_file', 'value')]
+    [Input('download_file', 'value')]
 )
 def update_download_link(file_list):
     """ Return link to download multiple raw files. """
@@ -990,12 +1060,12 @@ def download_file():
 #   Sliders
 ####################################################################################
 output_list = [
-    dash.dependencies.Output('{}_div'.format(column_name), 'style')
+    Output('{}_div'.format(column_name), 'style')
     for column_name in slice_col_list
 ]
 @app.callback(
     output_list,
-    [dash.dependencies.Input('column_slicer', 'value')]
+    [Input('column_slicer', 'value')]
 )
 def hide_unhide_sliders(criteria_show_list):
     """ Return Div.styles to hide and unhide divs. """
@@ -1013,16 +1083,16 @@ def hide_unhide_sliders(criteria_show_list):
 
 @app.callback(
     [
-        dash.dependencies.Output('{}'.format(col_name), 'min')
+        Output('{}'.format(col_name), 'min')
         for col_name in slice_col_list
     ] + [
-        dash.dependencies.Output('{}'.format(col_name), 'max')
+        Output('{}'.format(col_name), 'max')
         for col_name in slice_col_list
     ] + [
-        dash.dependencies.Output('{}'.format(col_name), 'marks')
+        Output('{}'.format(col_name), 'marks')
         for col_name in slice_col_list
     ],
-    [dash.dependencies.Input('brick_selector', 'value')]
+    [Input('brick_selector', 'value')]
 )
 def update_slice_limits(bricks_selected):
     """ Update limits on sliders depending on bricks selected. """
@@ -1073,14 +1143,14 @@ def update_slice_limits(bricks_selected):
 
 @app.callback(
     [
-        dash.dependencies.Output('{}_title'.format(col_name), 'children')
+        Output('{}_title'.format(col_name), 'children')
         for col_name in slice_col_list
     ],
     [
         *slice_inputs
     ],
     [
-        dash.dependencies.State('brick_selector', 'value')
+        State('brick_selector', 'value')
     ]
 )
 def update_slider_titles(*args):
@@ -1116,14 +1186,14 @@ def update_slider_titles(*args):
 
 @app.callback(
     [
-        dash.dependencies.Output('xaxis-formatting', 'style'),
-        dash.dependencies.Output('yaxis-formatting', 'style'),
-        dash.dependencies.Output('caxis-formatting', 'style')
+        Output('xaxis-formatting', 'style'),
+        Output('yaxis-formatting', 'style'),
+        Output('caxis-formatting', 'style')
     ],
     [
-        dash.dependencies.Input('xaxis_column', 'value'),
-        dash.dependencies.Input('yaxis_column', 'value'),
-        dash.dependencies.Input('caxis_column', 'value')
+        Input('xaxis_column', 'value'),
+        Input('yaxis_column', 'value'),
+        Input('caxis_column', 'value')
     ]
 )
 def unhide_axis_formatter(*args):
@@ -1150,31 +1220,31 @@ marker_properties = {
 }
 
 update_graph_inputs = [
-        dash.dependencies.Input('xaxis_column', 'value'),
-        dash.dependencies.Input('yaxis_column', 'value'),
-        dash.dependencies.Input('caxis_column', 'value'),
-        dash.dependencies.Input('saxis_column',  'value'),
-        dash.dependencies.Input('xaxis-type', 'value'),
-        dash.dependencies.Input('yaxis-type', 'value'),
-        dash.dependencies.Input('caxis-type', 'value'),
-        dash.dependencies.Input('xaxis-orientation', 'value'),
-        dash.dependencies.Input('yaxis-orientation', 'value'),
-        dash.dependencies.Input('caxis-orientation', 'value'),
-        dash.dependencies.Input('xaxis-combined-column', 'value'),
-        dash.dependencies.Input('yaxis-combined-column', 'value'),
-        dash.dependencies.Input('caxis-combined-column', 'value'),
-        dash.dependencies.Input('display_count_selection', 'value'),
-        dash.dependencies.Input('brick_selector', 'value'),
+        Input('xaxis_column', 'value'),
+        Input('yaxis_column', 'value'),
+        Input('caxis_column', 'value'),
+        Input('saxis_column',  'value'),
+        Input('xaxis-type', 'value'),
+        Input('yaxis-type', 'value'),
+        Input('caxis-type', 'value'),
+        Input('xaxis-orientation', 'value'),
+        Input('yaxis-orientation', 'value'),
+        Input('caxis-orientation', 'value'),
+        Input('xaxis-combined-column', 'value'),
+        Input('yaxis-combined-column', 'value'),
+        Input('caxis-combined-column', 'value'),
+        Input('display_count_selection', 'value'),
+        Input('brick_selector', 'value'),
         *slice_inputs
 ]
 
 @app.callback(
-    dash.dependencies.Output('indicator-graphic', 'figure'),
+    Output('indicator-graphic', 'figure'),
     update_graph_inputs,
     [
-        dash.dependencies.State('xaxis-operator', 'value'),
-        dash.dependencies.State('yaxis-operator', 'value'),
-        dash.dependencies.State('caxis-operator', 'value')
+        State('xaxis-operator', 'value'),
+        State('yaxis-operator', 'value'),
+        State('caxis-operator', 'value')
     ])
 def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
                  xaxis_type, yaxis_type, caxis_type,
@@ -1264,7 +1334,7 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
         'x': x_data,
         'y': y_data
     }
-    # TODO: Add Color and Size labels before "text" as they cannot be included in hoverinfo right now
+    # TODO: Add Color and Size labels to "text" as they cannot be included in hoverinfo right now
     # Add color scale
     if has_caxis:
         # Color Scales:  'Greys', 'YlGnBu', 'Greens', 'YlOrRd', 'Bluered', 'RdBu', 'Reds', 'Blues', 'Picnic', 'Rainbow', 'Portland', 'Jet', 'Hot', 'Blackbody', 'Earth', 'Electric', 'Viridis', 'Cividis'
@@ -1279,6 +1349,7 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
         marker_properties['colorbar'] = {'title':caxis_name, 'titleside':'right'}
     else:
         marker_properties['color'] = 1  # Recolor after color axis removed
+    # Add sizing
     if has_saxis:
         # Update Title
         title += ' sized by {}'.format(saxis_name)
@@ -1289,6 +1360,7 @@ def update_graph(xaxis_name, yaxis_name, caxis_name, saxis_name,
     # Finish Title
     annotations = []
     if has_bricks:
+        # NOTE: Sizing in titles not supported (2019-04)
         # Below title
         title = title + '<br><i>('+', '.join(sorted(bricks_selected))+')<i>'
         # Subtitle Variant with Annotation (NOTE: Not alignable with title)

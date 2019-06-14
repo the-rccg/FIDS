@@ -56,6 +56,7 @@ def get_all_data(bricks_selected, axis_name_list, criteria_dict,
         # Order by smallest fraction first to reduce Trues
         fractions = get_brick_col_usage(brick_name, criteria_dict, brick_column_details)
         fractions = sorted(fractions.items(), key=operator.itemgetter(1))
+        fractions = ((col_name, criteria_dict[col_name]) for col_name, frac in fractions)
         # 2.2 Get Data
         selected_data = slice_data(
                 data[brick_name].data,  # Pass immutable for reference to limit copies
