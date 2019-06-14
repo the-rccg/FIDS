@@ -579,48 +579,59 @@ app.layout = html.Div([
                                     'font-weight': 'bold'
                                 }
                             ),
-                            # 8.2.3.2 File download
-                            html.Div([
-                                # 8.2.3.1 Select File
-                                html.Div(
-                                    Dropdown(
-                                        id='download_file',
-                                        placeholder='Select file to download...',
-                                        options=[
-                                            {'label': '{}'.format(i), 'value': i}
-                                            for i in filename_list
-                                        ],
-                                        multi=False,
+                            # 8.2.3.2 Status
+                            html.Div(
+                                id='download_file_status',
+                                style={
+                                    'padding': '0px 0px 0px 3px',
+                                    'font-style': 'italic'
+                                }
+                            ),
+                            # 8.2.3.3 File download
+                            html.Div(
+                                [
+                                    # 8.2.3.3.1 Select File
+                                    html.Div(
+                                        Dropdown(
+                                            id='download_file',
+                                            placeholder='Select file to download...',
+                                            options=[
+                                                {'label': '{}'.format(i), 'value': i}
+                                                for i in filename_list
+                                            ],
+                                            multi=False,
+                                        ),
+                                        style={
+                                            **dropdown_style,
+                                            'display': 'table-cell',
+                                            'width': 'auto',
+                                        }
                                     ),
-                                    style={
-                                        **dropdown_style,
-                                        'display': 'table-cell',
-                                        'width': 'auto',
-                                    }
-                                ),
-                                # 8.2.3.1 Download Button
-                                html.A(
-                                    html.Button(
-                                        'Download *ENTIRE FILE*',
-                                        className='button-primary',
-                                        type='button-primary',
-                                        id='entire-file-button'
+                                    # 8.2.3.3.2 Download Button
+                                    html.A(
+                                        html.Button(
+                                            'Download *ENTIRE FILE*',
+                                            className='button-primary',
+                                            type='button-primary',
+                                            id='entire-file-button',
+                                            n_clicks=0
+                                        ),
+                                        id='download-full-link',
+                                        download="rawdata.fits",
+                                        href="",
+                                        target="_blank",
+                                        style={
+                                            'padding': '3px',
+                                            'display': 'table-cell',
+                                            'width': '50px'
+                                        }
                                     ),
-                                    id='download-full-link',
-                                    download="rawdata.fits",
-                                    href="",
-                                    target="_blank",
-                                    style={
-                                        'padding': '3px',
-                                        'display': 'table-cell',
-                                        'width': '50px'
-                                    }
-                                ),
-                            ],
-                            style={
-                                'width': '100%',
-                                'display': 'table'
-                            })
+                                ],
+                                style={
+                                    'width': '100%',
+                                    'display': 'table'
+                                }
+                            ) 
                         ],
                         style={
                             'margin-top': '5px'
@@ -629,7 +640,7 @@ app.layout = html.Div([
                     # 8.2.2: Download Selected Criteria
                     html.Div(
                         [
-                            # 8.2.4.1 Description
+                            # 8.2.2.1 Description
                             html.Div(
                                 add_explanation(
                                     'Download all data fitting the criteria:',
@@ -641,7 +652,7 @@ app.layout = html.Div([
                                     'font-weight': 'bold'
                                 }
                             ),
-                            # 8.2.4.2 Status Bar
+                            # 8.2.2.2 Status Bar
                             html.Div(
                                 id='download_column_status',
                                 style={
@@ -649,8 +660,9 @@ app.layout = html.Div([
                                     'font-style': 'italic'
                                 }
                             ),
+                            # 8.2.2.3 Selection
                             html.Div([
-                                # 8.2.4.3 Column Selector
+                                # 8.2.2.3.1 Column Selector
                                 html.Div(
                                     Dropdown(
                                         id='download_columns',
@@ -667,7 +679,7 @@ app.layout = html.Div([
                                         'width': 'auto'
                                     }
                                 ),
-                                # 8.2.3 Download all data in criteria
+                                # 8.2.2.3.2 Download all data in criteria
                                 # Download
                                 add_explanation(
                                     #html.A(
@@ -1021,7 +1033,9 @@ def download_selection():
         Output('download-full-link', 'href'),
         Output('download-full-link', 'download')
     ],
-    [Input('download_file', 'value')]
+    [
+        Input('download_file', 'value')
+    ]
 )
 def update_download_link(file_list):
     """ Return link to download multiple raw files. """
@@ -1033,6 +1047,23 @@ def update_download_link(file_list):
         '/dash/download?{}'.format(urlencode({'file_list':file_list})),
         file_list[0]
     ]
+
+@app.callback(
+    Output('download_file_status', 'children'),
+    [Input('entire-file-button', 'n_clicks')],
+    [State('download_file', 'value')]
+)
+def update_download_status(n_clicks, file_list):
+    """ Update Status for downloading entire file. """
+    if not n_clicks:
+        return None
+    else:
+        if not file_list or file_list == "None":
+            return "Status: Failed. No file selected."
+        if type(file_list) != list:
+            file_list = [file_list]
+        return "Selected: {}".format(file_list[0])
+
 
 @app.server.route('/dash/download')
 def download_file():
