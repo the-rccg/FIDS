@@ -2,6 +2,27 @@
 
 ## FIDS v0.3.x
 
+### 2019-06-14   (v0.3.5)
+
+- Introduce Bootstrap for download via modal overlying element
+- Status bar for file download
+- Prepare brick setup now automatically by abstracting out setup_dataset
+
+### 2019-06-13   (v0.3.4)
+
+- Further abstract toolset
+- Linting
+
+### 2019-06-12   (v0.3.3)
+
+- Include Heidelberg SVG Image Files
+- Running FIDS now in ReadMe
+
+### 2019-06-11   (v0.3.2)
+
+- Update Requirements
+- Update ReadMe
+
 ### 2019-06-09   (v0.3.1)
 
 - Restructuring project for easier extension building (e.g. introduce .io_tools)
@@ -13,7 +34,6 @@
 - Allow selection of data on combined and rescaled axes
 - Improve speed by ordering fractions in slicing, other small changes
 - params_to_link now adjusts for combined axes
-
 
 ## FIDS V0.2.x
 
