@@ -111,7 +111,7 @@ brick_column_details = prepare_brick_info(
     settings['savepath'], acceptable_types=settings['allowed_slider_dtypes']
 )
 
-# Cut out bricks without computed details
+# Cut out bricks with computed details
 filename_list = [
     filename for filename in filename_list
     if filename in brick_column_details.keys()
@@ -164,6 +164,15 @@ slice_states = [
     for col_name in slice_col_list
 ]
 ####################################################################################
+
+# Show only one file if only one present
+fileselector_kwargs = {}
+if len(filename_list) == 1:
+    fileselector_kwargs = {
+        'value': filename_list[0],
+        'disabled': True
+    }
+
 
 debug_elements = []
 if debug:
@@ -371,8 +380,9 @@ app.layout = html.Div([
                     {'label': '{}'.format(i), 'value': i}
                     for i in filename_list
                 ],
-                multi=True
-            ),
+                multi=True,
+                **fileselector_kwargs
+            ), 
             style=dropdown_style
         ),
 
