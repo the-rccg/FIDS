@@ -8,6 +8,8 @@ FIDS makes use of memory buffering of FITS files through AstroPy, subsampling of
 
 Distributed computing through Dask is still being developed to ensure comparable performance and minimal setup is maintained under all circumstances. 
 
+This project was developed for internal use at the Institute for Theoretical Astrophysics at the Ruprecht-Karls University Heidelberg. It was open-sourced in hopes that it might kick off further development in the interactive visualization of astronomical data. It is currently dormant as I have moved to focus more on computational plasma physics. If you are interested in contributing, taking over the project, or the approach has inspired you please let me know.
+
 [![astropy](http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat)](http://www.astropy.org/)
 
 ## Setup
